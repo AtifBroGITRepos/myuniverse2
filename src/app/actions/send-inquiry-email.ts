@@ -16,6 +16,7 @@ interface InquiryData {
   projectTitle?: string;
   clientProjectIdea?: string;
   aiGeneratedIdeas?: string | null;
+  messageSummary?: string | null; // New field for AI summary
 }
 
 interface SendInquiryEmailsResult {
@@ -41,7 +42,7 @@ const htmlToText = (html: string) => {
     .replace(/<\/p>/gi, '\n')
     .replace(/<hr\s*\/?>/gi, '\n--------------------------------------------------\n')
     .replace(/<[^>]+>/gi, '')
-    .replace(/\n\s*\n/g, '\n\n') // Replace multiple newlines with a double newline
+    .replace(/\n\s*\n/g, '\n\n') 
     .trim();
 };
 
@@ -56,9 +57,34 @@ export async function sendInquiryEmails(data: InquiryData): Promise<SendInquiryE
   const userEmail = data.email;
   const projectTitleForEmail = data.projectTitle || 'our services';
 
+  // Prepare AI Generated Summary HTML block (for both user and admin emails)
+  let aiGeneratedSummaryHTML = '';
+  if (data.messageSummary) {
+    aiGeneratedSummaryHTML = `
+        <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>AI Summary of Your Message:</strong></p>
+        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #10B981; background-color: #f0fdf4;">
+          ${nl2br(data.messageSummary)}
+        </div>`;
+  }
+  
+  // Prepare AI Suggested Ideas HTML block (for admin project inquiry email)
+   let aiSuggestedProjectIdeasHTML = '';
+   if (data.type === 'Project Service Inquiry' && data.aiGeneratedIdeas) {
+      aiSuggestedProjectIdeasHTML = `
+        <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>AI Suggested Ideas (for reference):</strong></p>
+        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
+          ${nl2br(data.aiGeneratedIdeas)}
+        </div>`;
+   }
+
+
   // 1. Email to User (Confirmation)
   let userSubject: string;
-  let userHtmlBody: string;
+  let userHtmlTemplate: string; // Will hold the raw template string from constants or DB later
+
+  // THESE TEMPLATES ARE NOW THE DEFAULTS - IN A REAL SYSTEM THEY'D BE FETCHED (e.g. from constants.ts or DB)
+  // For simplicity, they are inlined here but would ideally come from a central source that the admin panel also uses/edits.
+  // The placeholders like {{userName}} will be replaced.
 
   if (data.type === 'Project Service Inquiry') {
     userSubject = `Inquiry Received: ${data.projectTitle || 'Your Project Idea'} - ${siteName}`;
@@ -70,69 +96,82 @@ export async function sendInquiryEmails(data: InquiryData): Promise<SendInquiryE
         </div>`
       : '';
 
-    userHtmlBody = `
+    userHtmlTemplate = `
 <html>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
     <tr>
       <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">${siteName}</h1>
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">{{siteName}}</h1>
       </td>
     </tr>
     <tr>
       <td style="padding: 30px 20px;">
-        <p style="font-size: 16px; color: #333333;">Hello ${userName},</p>
-        <p style="font-size: 16px; color: #333333;">Thank you for your interest in ${siteName}. We have received your inquiry regarding "<strong>${projectTitleForEmail}</strong>".</p>
-        ${clientProjectIdeaHTML}
+        <p style="font-size: 16px; color: #333333;">Hello {{userName}},</p>
+        <p style="font-size: 16px; color: #333333;">Thank you for your interest in {{siteName}}. We have received your inquiry regarding "<strong>{{projectTitleForEmail}}</strong>".</p>
+        {{clientProjectIdeaHTML}}
+        {{aiGeneratedSummaryHTML}}
         <p style="font-size: 16px; color: #333333; margin-top: 20px;">We will review your details and get back to you as soon as possible.</p>
-        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The ${siteName} Team</p>
+        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
       </td>
     </tr>
     <tr>
       <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
-        &copy; ${currentYear} ${siteName}. All rights reserved.
+        &copy; {{currentYear}} {{siteName}}. All rights reserved.
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+    userHtmlTemplate = userHtmlTemplate.replace('{{clientProjectIdeaHTML}}', clientProjectIdeaHTML);
+
   } else { // General Contact
     userSubject = `Message Received - ${siteName}`;
-    userHtmlBody = `
+    userHtmlTemplate = `
 <html>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
     <tr>
       <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">${siteName}</h1>
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">{{siteName}}</h1>
       </td>
     </tr>
     <tr>
       <td style="padding: 30px 20px;">
-        <p style="font-size: 16px; color: #333333;">Hello ${userName},</p>
-        <p style="font-size: 16px; color: #333333;">Thank you for reaching out to ${siteName}. We have received your message and will get back to you as soon as possible.</p>
+        <p style="font-size: 16px; color: #333333;">Hello {{userName}},</p>
+        <p style="font-size: 16px; color: #333333;">Thank you for reaching out to {{siteName}}. We have received your message and will get back to you as soon as possible.</p>
         <p style="font-size: 16px; color: #333333; margin-top: 20px;"><strong>Your message:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9;">
-          ${nl2br(data.message)}
+          {{userMessageHTML}}
         </div>
-        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The ${siteName} Team</p>
+        {{aiGeneratedSummaryHTML}}
+        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
       </td>
     </tr>
     <tr>
       <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
-        &copy; ${currentYear} ${siteName}. All rights reserved.
+        &copy; {{currentYear}} {{siteName}}. All rights reserved.
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+    userHtmlTemplate = userHtmlTemplate.replace('{{userMessageHTML}}', nl2br(data.message));
   }
+
+  // Replace common placeholders for user email
+  let finalUserHtmlBody = userHtmlTemplate
+    .replace(/{{siteName}}/g, siteName)
+    .replace(/{{userName}}/g, userName)
+    .replace(/{{projectTitleForEmail}}/g, projectTitleForEmail) // Safe even if not present in general template
+    .replace(/{{currentYear}}/g, currentYear.toString())
+    .replace('{{aiGeneratedSummaryHTML}}', aiGeneratedSummaryHTML); // Add summary
   
   const userEmailResult = await sendEmail({
     to: data.email,
     subject: userSubject,
-    html: userHtmlBody,
-    text: htmlToText(userHtmlBody),
+    html: finalUserHtmlBody,
+    text: htmlToText(finalUserHtmlBody),
   });
 
   if (!userEmailResult.success) {
@@ -146,95 +185,109 @@ export async function sendInquiryEmails(data: InquiryData): Promise<SendInquiryE
   }
 
   const adminSubject = `New ${data.type}: ${userName} (${data.projectTitle || 'General Inquiry'}) - ${siteName}`;
-  let adminHtmlBody: string;
+  let adminHtmlTemplate: string;
 
   if (data.type === 'Project Service Inquiry') {
-    const aiGeneratedIdeasHTML = data.aiGeneratedIdeas
-      ? `
-        <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>AI Suggested Ideas (for reference):</strong></p>
-        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
-          ${nl2br(data.aiGeneratedIdeas)}
-        </div>`
-      : '';
-
-    adminHtmlBody = `
+    adminHtmlTemplate = `
 <html>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
     <tr>
       <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Project Inquiry - ${siteName}</h1>
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Project Inquiry - {{siteName}}</h1>
       </td>
     </tr>
     <tr>
       <td style="padding: 30px 20px;">
-        <p style="font-size: 16px; color: #333333;">You have received a new ${data.type.toLowerCase()} via the ${siteName} website:</p>
+        <p style="font-size: 16px; color: #333333;">You have received a new project service inquiry via the {{siteName}} website:</p>
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
-        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> ${userName}</p>
-        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:${userEmail}" style="color: #39FF14; text-decoration: none;">${userEmail}</a></p>
-        <p style="font-size: 16px; color: #333333;"><strong>Regarding Project:</strong> ${projectTitleForEmail}</p>
+        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> {{userName}}</p>
+        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:{{userEmail}}" style="color: #39FF14; text-decoration: none;">{{userEmail}}</a></p>
+        <p style="font-size: 16px; color: #333333;"><strong>Regarding Project:</strong> {{projectTitleForEmail}}</p>
         <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Client's Project Idea/Requirements:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
-          ${nl2br(data.clientProjectIdea || data.message)}
+          {{clientProjectIdeaHTML}}
         </div>
-        ${aiGeneratedIdeasHTML}
+        {{aiGeneratedSummaryHTML}}
+        {{aiSuggestedProjectIdeasHTML}}
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
         <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
       </td>
     </tr>
     <tr>
       <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
-         This is an automated notification from ${siteName}.
+         This is an automated notification from {{siteName}}.
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+    adminHtmlTemplate = adminHtmlTemplate
+        .replace('{{clientProjectIdeaHTML}}', nl2br(data.clientProjectIdea || data.message))
+        .replace('{{aiSuggestedProjectIdeasHTML}}', aiSuggestedProjectIdeasHTML);
+
   } else { // General Contact
-     adminHtmlBody = `
+     adminHtmlTemplate = `
 <html>
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
     <tr>
       <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Inquiry - ${siteName}</h1>
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Inquiry - {{siteName}}</h1>
       </td>
     </tr>
     <tr>
       <td style="padding: 30px 20px;">
-        <p style="font-size: 16px; color: #333333;">You have received a new ${data.type.toLowerCase()} via the ${siteName} website:</p>
+        <p style="font-size: 16px; color: #333333;">You have received a new general contact via the {{siteName}} website:</p>
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
-        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> ${userName}</p>
-        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:${userEmail}" style="color: #39FF14; text-decoration: none;">${userEmail}</a></p>
+        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> {{userName}}</p>
+        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:{{userEmail}}" style="color: #39FF14; text-decoration: none;">{{userEmail}}</a></p>
         <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Message:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
-          ${nl2br(data.message)}
+          {{userMessageHTML}}
         </div>
+        {{aiGeneratedSummaryHTML}}
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
         <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
       </td>
     </tr>
     <tr>
       <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
-        This is an automated notification from ${siteName}.
+        This is an automated notification from {{siteName}}.
       </td>
     </tr>
   </table>
 </body>
 </html>`;
+    adminHtmlTemplate = adminHtmlTemplate.replace('{{userMessageHTML}}', nl2br(data.message));
   }
+  
+  // Replace common placeholders for admin email
+  let finalAdminHtmlBody = adminHtmlTemplate
+    .replace(/{{siteName}}/g, siteName)
+    .replace(/{{userName}}/g, userName)
+    .replace(/{{userEmail}}/g, userEmail)
+    .replace(/{{projectTitleForEmail}}/g, projectTitleForEmail)
+    .replace('{{aiGeneratedSummaryHTML}}', aiGeneratedSummaryHTML.replace("AI Summary of Your Message:", "AI Summary of User's Message:")); // Modify title for admin
+
 
   const adminEmailResult = await sendEmail({
     to: adminEmail,
     subject: adminSubject,
-    html: adminHtmlBody,
-    text: htmlToText(adminHtmlBody),
+    html: finalAdminHtmlBody,
+    text: htmlToText(finalAdminHtmlBody),
   });
 
   if (!adminEmailResult.success) {
     console.error('Failed to send notification email to admin:', adminEmailResult.error);
-    return { success: true, adminEmailFailed: true, adminEmailError: typeof adminEmailResult.error === 'string' ? adminEmailResult.error : JSON.stringify(adminEmailResult.error), originalInquiryData: data };
+    return { 
+        success: userEmailResult.success, // Success based on user email if admin fails
+        adminEmailFailed: true, 
+        adminEmailError: typeof adminEmailResult.error === 'string' ? adminEmailResult.error : JSON.stringify(adminEmailResult.error), 
+        originalInquiryData: data 
+    };
   }
 
   return { success: true };
 }
+

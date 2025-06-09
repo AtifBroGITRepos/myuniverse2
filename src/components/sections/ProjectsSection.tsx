@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateTestimonials, type GenerateTestimonialsInput } from '@/ai/flows/generate-testimonials';
 import { suggestProjectIdeas, type SuggestProjectIdeasInput } from '@/ai/flows/suggest-project-ideas';
+import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow'; // Import summarizer
 import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
 import { ExternalLink, Github, Sparkles, MessageSquare, Lightbulb, Send, Palette } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -96,22 +97,34 @@ function ProjectCard({ project }: ProjectCardProps) {
     }
     setIsSubmittingServiceInquiry(true);
 
+    let messageSummaryForEmail: string | null = null;
+    try {
+      if (inquiryProjectIdea.trim()) {
+        const summaryResult = await summarizeSingleMessage({ messageContent: inquiryProjectIdea });
+        messageSummaryForEmail = summaryResult.summary;
+      }
+    } catch (summaryError) {
+      console.warn(`AI summary generation failed for project inquiry "${project.title}":`, summaryError);
+      // Do not block submission if summary fails
+    }
+
     const inquiryDataForAction = {
       name: inquiryName,
       email: inquiryEmail,
-      message: `Service Inquiry for project: "${project.title}"`, // Base message
+      message: `Service Inquiry for project: "${project.title}"`, 
       type: 'Project Service Inquiry' as const,
       projectTitle: project.title,
       clientProjectIdea: inquiryProjectIdea,
       aiGeneratedIdeas: aiGeneratedIdeas,
+      messageSummary: messageSummaryForEmail, // Pass the summary
     };
     
-    // Save to localStorage (for admin panel message viewing)
     const combinedMessageForAdminPanel = `
 Service Inquiry regarding project: "${project.title}"
 Client's Project Idea/Requirements:
 ${inquiryProjectIdea}
-${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}` : ''}
+${messageSummaryForEmail ? `\n\nAI Summary of Client Idea: ${messageSummaryForEmail}` : ''}
+${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}` : ''}
     `.trim();
 
     const originalMessageForAdminPanel: AdminMessage = {
@@ -126,37 +139,37 @@ ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
       messages.push(originalMessageForAdminPanel);
+      messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving inquiry to localStorage:', error);
-      // Non-critical, proceed with email sending
     }
 
     const emailResult = await sendInquiryEmails(inquiryDataForAction);
 
-    if (emailResult.success) {
+    if (emailResult.success || emailResult.adminEmailFailed) { // Consider success if user email sent
       toast({ title: 'Inquiry Submitted!', description: "Thank you for your interest. We've received your inquiry and will get back to you soon." });
       setInquiryName('');
       setInquiryEmail('');
       setInquiryProjectIdea('');
       setAiGeneratedIdeas(null);
-      setIsServiceModalOpen(false); // Close modal on success
+      setIsServiceModalOpen(false); 
 
-      if (emailResult.adminEmailFailed) {
+      if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
         console.warn("Admin email failed to send for service inquiry. Details:", emailResult.adminEmailError);
         const failureMessage: AdminMessage = {
           id: `email-fail-${Date.now()}`,
           name: "SYSTEM ALERT - Email Failure",
           email: "N/A",
-          message: `Failed to send admin notification for an inquiry.\nType: Project Service Inquiry\nProject: ${emailResult.originalInquiryData?.projectTitle}\nFrom: ${emailResult.originalInquiryData?.name} (${emailResult.originalInquiryData?.email})\nClient Idea: ${emailResult.originalInquiryData?.clientProjectIdea}\nAI Ideas: ${emailResult.originalInquiryData?.aiGeneratedIdeas || 'N/A'}\nError: ${emailResult.adminEmailError}`,
+          message: `Failed to send admin notification for an inquiry.\nType: Project Service Inquiry\nProject: ${emailResult.originalInquiryData.projectTitle}\nFrom: ${emailResult.originalInquiryData.name} (${emailResult.originalInquiryData.email})\nClient Idea: ${emailResult.originalInquiryData.clientProjectIdea}\nAI Summary: ${emailResult.originalInquiryData.messageSummary || 'N/A'}\nAI Ideas (if any): ${emailResult.originalInquiryData.aiGeneratedIdeas || 'N/A'}\nError: ${emailResult.adminEmailError}`,
           receivedAt: new Date().toISOString(),
         };
         try {
           const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
           const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
           messages.push(failureMessage);
+          messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
           localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
-           // Removed the additional toast for admin notification issue here
         } catch (localError) {
           console.error('Error saving email failure message to localStorage:', localError);
         }
@@ -275,7 +288,7 @@ ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}
                   </div>
                   <DialogFooter>
                     <Button type="submit" className="w-full" disabled={isSubmittingServiceInquiry}>
-                     <Send className="mr-2 h-4 w-4" /> {isSubmittingServiceInquiry ? 'Submitting...' : 'Submit Inquiry'}
+                     {isSubmittingServiceInquiry ? <><Sparkles className="mr-2 h-4 w-4 animate-pulse"/> Submitting...</> : <><Send className="mr-2 h-4 w-4" /> Submit Inquiry</> }
                     </Button>
                   </DialogFooter>
                 </form>

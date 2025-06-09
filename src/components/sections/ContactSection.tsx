@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
-import { Send, Mail, Phone, MapPin } from 'lucide-react';
+import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow'; // Import summarizer
+import { Send, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
 import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage } from '@/data/constants';
 
 
@@ -31,58 +32,71 @@ export function ContactSection() {
     }
     setIsSubmitting(true);
 
+    let messageSummaryForEmail: string | null = null;
+    try {
+      if (formData.message.trim()) {
+        const summaryResult = await summarizeSingleMessage({ messageContent: formData.message });
+        messageSummaryForEmail = summaryResult.summary;
+      }
+    } catch (summaryError) {
+      console.warn("AI summary generation failed for contact form:", summaryError);
+      // Do not block submission if summary fails
+    }
+    
+    const inquiryDataForAction = {
+      ...formData,
+      type: 'General Contact' as const,
+      messageSummary: messageSummaryForEmail, // Pass the summary
+    };
+
     // Save to localStorage (for admin panel message viewing)
     const originalMessageForAdminPanel: AdminMessage = {
       id: `contact-${Date.now()}`,
       name: formData.name,
       email: formData.email,
-      message: `General Contact Form:\n${formData.message}`,
+      message: `General Contact Form:\n${formData.message}${messageSummaryForEmail ? `\n\nAI Summary: ${messageSummaryForEmail}` : ''}`,
       receivedAt: new Date().toISOString(),
     };
     try {
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
-      messages.push(originalMessageForAdminPanel);
+      messages.push(originalMessageForAdminPanel); // Add to the beginning (or end if preferred)
+      messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()); // Re-sort after adding
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving contact message to localStorage:', error);
-      // Non-critical, proceed with email sending
     }
 
     // Attempt to send emails
-    const emailResult = await sendInquiryEmails({
-      ...formData,
-      type: 'General Contact',
-    });
+    const emailResult = await sendInquiryEmails(inquiryDataForAction);
 
-    if (emailResult.success) {
+    if (emailResult.success || emailResult.adminEmailFailed) { // Consider success if user email sent, even if admin failed
       toast({
         title: "Message Sent!",
-        description: "Thanks for reaching out. We've received your message and will reply to you soon.",
+        description: "We've received your message and will reply to you soon.",
       });
-      setFormData({ name: '', email: '', message: '' }); // Clear form on success
+      setFormData({ name: '', email: '', message: '' }); // Clear form
 
-      if (emailResult.adminEmailFailed) {
-        console.warn("Admin email failed to send. Details:", emailResult.adminEmailError);
+      if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
+        console.warn("Admin email failed to send for general contact. Details:", emailResult.adminEmailError);
         const failureMessage: AdminMessage = {
           id: `email-fail-${Date.now()}`,
           name: "SYSTEM ALERT - Email Failure",
           email: "N/A",
-          message: `Failed to send admin notification for an inquiry.\nType: General Contact\nFrom: ${emailResult.originalInquiryData?.name} (${emailResult.originalInquiryData?.email})\nOriginal Message: ${emailResult.originalInquiryData?.message}\nError: ${emailResult.adminEmailError}`,
+          message: `Failed to send admin notification for an inquiry.\nType: General Contact\nFrom: ${emailResult.originalInquiryData.name} (${emailResult.originalInquiryData.email})\nOriginal Message: ${emailResult.originalInquiryData.message}\nAI Summary: ${emailResult.originalInquiryData.messageSummary || 'N/A'}\nError: ${emailResult.adminEmailError}`,
           receivedAt: new Date().toISOString(),
         };
         try {
           const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
           const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
           messages.push(failureMessage);
+          messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
           localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
-          // Removed the additional toast for admin notification issue here
         } catch (localError) {
           console.error('Error saving email failure message to localStorage:', localError);
         }
       }
     } else {
-      // This case should now be rare, mostly for critical unrecoverable errors like sendInquiryEmails itself throwing or SMTP completely misconfigured before even trying.
       toast({
         title: "Submission Error",
         description: emailResult.error || "Could not send your message. Please try again later.",
@@ -171,7 +185,9 @@ export function ContactSection() {
                 />
               </div>
               <Button type="submit" className="w-full font-semibold" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : (
+                {isSubmitting ? (
+                  <> <Sparkles className="mr-2 h-5 w-5 animate-pulse" /> Sending... </>
+                 ) : (
                   <>
                     <Send className="mr-2 h-5 w-5" />
                     Send Message

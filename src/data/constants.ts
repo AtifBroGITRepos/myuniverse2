@@ -221,6 +221,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9;">
           {{userMessageHTML}}
         </div>
+        {{aiGeneratedSummaryHTML}}
         <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
       </td>
     </tr>
@@ -246,6 +247,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <p style="font-size: 16px; color: #333333;">Hello {{userName}},</p>
         <p style="font-size: 16px; color: #333333;">Thank you for your interest in {{siteName}}. We have received your inquiry regarding "<strong>{{projectTitleForEmail}}</strong>".</p>
         {{clientProjectIdeaHTML}}
+        {{aiGeneratedSummaryHTML}}
         <p style="font-size: 16px; color: #333333; margin-top: 20px;">We will review your details and get back to you as soon as possible.</p>
         <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
       </td>
@@ -277,6 +279,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
           {{userMessageHTML}}
         </div>
+        {{aiGeneratedSummaryHTML}}
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
         <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
       </td>
@@ -309,7 +312,8 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
           {{clientProjectIdeaHTML}}
         </div>
-        {{aiGeneratedIdeasHTML}}
+        {{aiGeneratedSummaryHTML}}
+        {{aiSuggestedProjectIdeasHTML}}
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
         <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
       </td>

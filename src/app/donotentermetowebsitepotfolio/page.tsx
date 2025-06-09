@@ -21,7 +21,7 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { summarizeSingleMessage, type SummarizeSingleMessageInput } from '@/ai/flows/summarize-single-message-flow'; // New import
+import { summarizeSingleMessage, type SummarizeSingleMessageInput } from '@/ai/flows/summarize-single-message-flow'; 
 import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generate-hero-text-flow';
 import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
 import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
@@ -659,15 +659,14 @@ function MessagesManager() {
   const [isLoadingOverallSummary, setIsLoadingOverallSummary] = useState(false);
   const { toast } = useToast();
 
-  const [isLoadingIndividualSummary, setIsLoadingIndividualSummary] = useState<string | null>(null); // Store message ID
-  const [individualSummaries, setIndividualSummaries] = useState<Record<string, string>>({}); // msgId: summary
+  const [isLoadingIndividualSummary, setIsLoadingIndividualSummary] = useState<string | null>(null); 
+  const [individualSummaries, setIndividualSummaries] = useState<Record<string, string>>({}); 
 
   useEffect(() => {
     const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
     if (storedMessages) {
       try {
         const parsedMessages = JSON.parse(storedMessages);
-        // Ensure messages are sorted by receivedAt descending (newest first)
         parsedMessages.sort((a: AdminMessage, b: AdminMessage) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
         setMessages(parsedMessages);
       } catch (e) {
@@ -679,7 +678,6 @@ function MessagesManager() {
   }, [toast]);
 
   const handleSaveMessages = (updatedMessages: AdminMessage[]) => {
-    // Ensure messages are sorted by receivedAt descending before saving
     updatedMessages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
     localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(updatedMessages));
     setMessages(updatedMessages);
@@ -696,7 +694,7 @@ function MessagesManager() {
       id: `msg-${Date.now()}`,
       receivedAt: new Date().toISOString(),
     };
-    const updatedMessages = [messageToAdd, ...messages]; // Add to the beginning
+    const updatedMessages = [messageToAdd, ...messages]; 
     handleSaveMessages(updatedMessages);
     setNewMessage({ name: '', email: '', message: '' }); 
     toast({ title: "Message Added", description: "Mock message saved to local storage." });
@@ -728,7 +726,7 @@ function MessagesManager() {
     setIsLoadingOverallSummary(true);
     setOverallSummary(null);
     try {
-      const input: SummarizeMessagesInput = { messages }; // Pass sorted messages
+      const input: SummarizeMessagesInput = { messages }; 
       const result = await summarizeMessages(input);
       setOverallSummary(result.summary);
       toast({ title: "AI Overall Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
@@ -1127,7 +1125,7 @@ function SmtpConfigViewer() {
 function AdminMailSender() {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
-  const [body, setBody] = useState(''); // This will store HTML
+  const [body, setBody] = useState(''); 
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
@@ -1150,10 +1148,10 @@ function AdminMailSender() {
         lengthHint: aiLength,
       };
       const result = await generateEmailContent(input);
-      setBody(result.suggestedHtmlBody); // Set the main email body
+      setBody(result.suggestedHtmlBody); 
       toast({ title: "AI Email Content Generated!", description: "The email body has been updated." });
-      setIsAiDialogOpen(false); // Close dialog on success
-      setAiUserPrompt(''); // Reset AI prompt
+      setIsAiDialogOpen(false); 
+      setAiUserPrompt(''); 
     } catch (error) {
       console.error("Error generating email content with AI:", error);
       toast({ title: "AI Error", description: "Could not generate email content. Please try again.", variant: "destructive" });
@@ -1171,7 +1169,6 @@ function AdminMailSender() {
     }
     setIsSending(true);
     try {
-      // Body is already HTML from the Textarea (potentially AI-generated)
       const result = await sendAdminComposedEmail({ to, subject, htmlBody: body }); 
       if (result.success) {
         toast({ title: "Email Sent!", description: `Successfully sent email to ${to}.` });
@@ -1323,12 +1320,10 @@ function EmailTemplatesEditor() {
         setTemplates(JSON.parse(storedTemplates));
       } catch (e) {
         console.error("Error parsing email templates from localStorage", e);
-        // Fallback to defaults from constants.ts if parsing fails or data is corrupt
         setTemplates(DEFAULT_EMAIL_TEMPLATES); 
         toast({ title: "Load Error", description: "Could not load saved email templates, reset to default from constants.ts.", variant: "destructive" });
       }
     } else {
-      // If nothing in localStorage, initialize with defaults from constants.ts
       setTemplates(DEFAULT_EMAIL_TEMPLATES);
     }
   }, [toast]);
@@ -1343,7 +1338,6 @@ function EmailTemplatesEditor() {
   };
 
   const handleReset = () => {
-    // Reset to defaults defined in constants.ts
     setTemplates(DEFAULT_EMAIL_TEMPLATES); 
     localStorage.removeItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
     toast({ title: "Reset Successful", description: "Email templates reset to default values (from constants.ts)." });
@@ -1354,13 +1348,11 @@ function EmailTemplatesEditor() {
     { name: "{{currentYear}}", desc: "The current year (from send-inquiry-email.ts)." },
     { name: "{{userName}}", desc: "The name of the person who submitted the form." },
     { name: "{{userEmail}}", desc: "The email of the person who submitted the form." },
-    { name: "{{userMessage}}", desc: "Raw message content for general contact (use nl2br in template if needed or use {{userMessageHTML}})." },
     { name: "{{userMessageHTML}}", desc: "HTML version of general contact message (newlines converted to <br/>)." },
     { name: "{{projectTitleForEmail}}", desc: "The project title for service inquiries (or 'our services')." },
-    { name: "{{clientProjectIdea}}", desc: "Raw client's project idea for service inquiries (use nl2br or {{clientProjectIdeaHTML}})." },
     { name: "{{clientProjectIdeaHTML}}", desc: "HTML version of client's project idea (user confirmation email; newlines to <br/>)." },
-    { name: "{{aiGeneratedIdeas}}", desc: "Raw AI generated ideas for service inquiries (use nl2br or {{aiGeneratedIdeasHTML}})." },
-    { name: "{{aiGeneratedIdeasHTML}}", desc: "HTML block for AI generated ideas (admin notification; newlines to <br/>)." },
+    { name: "{{aiSuggestedProjectIdeasHTML}}", desc: "HTML block for AI suggested project ideas (admin notification; newlines to <br/>)." },
+    { name: "{{aiGeneratedSummaryHTML}}", desc: "HTML block for AI generated summary of user's message/idea (user and admin emails; newlines to <br/>)." },
   ];
 
   return (
@@ -1380,7 +1372,7 @@ function EmailTemplatesEditor() {
               <li>Paste it into the corresponding HTML string variable within the <code className="text-xs bg-muted p-1 rounded">src/app/actions/send-inquiry-email.ts</code> file on your server.</li>
               <li>Redeploy your application for the changes to take effect on the server.</li>
             </ol>
-            This editor helps you design and manage the templates locally before updating the server code.
+            This editor helps you design and manage the templates locally before updating the server code. The default templates here are now in sync with `send-inquiry-email.ts`.
           </div>
         </CardDescription>
       </CardHeader>
@@ -1391,8 +1383,7 @@ function EmailTemplatesEditor() {
             {availablePlaceholders.map(p => <li key={p.name}><strong>{p.name}</strong>: {p.desc}</li>)}
           </ul>
            <p className="text-xs text-primary/80 mt-2">
-             Note: Placeholders like `{{userMessageHTML}}` and `{{clientProjectIdeaHTML}}` are already processed by the server action to convert newlines to &lt;br/&gt;.
-             For raw content like `{{userMessage}}`, you would need to implement newline-to-break logic if desired within the template itself or rely on the HTML version.
+             Note: Placeholders ending in `HTML` (e.g., `{{userMessageHTML}}`, `{{aiGeneratedSummaryHTML}}`) are processed by the server action to convert newlines to &lt;br/&gt; and structure the content.
              The actual replacement logic is in `send-inquiry-email.ts`.
            </p>
         </div>
@@ -1558,3 +1549,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
