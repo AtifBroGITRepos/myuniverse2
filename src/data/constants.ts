@@ -163,3 +163,13 @@ export const CONTACT_INFO: ContactDetails = {
   }
 };
 
+export interface AdminMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  receivedAt: string;
+}
+
+export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
+

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import Image from 'next/image';
 import { Container } from '@/components/shared/Container';
 import { Button } from '@/components/ui/button';
@@ -10,16 +10,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
-import { ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, type Service, type Project, type ContactDetails, type ServiceIconName } from '@/data/constants';
+import { 
+  ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, LOCALSTORAGE_MESSAGES_KEY,
+  type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage 
+} from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle } from 'lucide-react';
+import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
 const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
 const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data";
 const LOCALSTORAGE_CONTACT_KEY = "admin_contact_info";
+
 
 function AboutEditor() {
   const [aboutText, setAboutText] = useState(ATIF_PORTFOLIO_DESCRIPTION);
@@ -104,6 +110,8 @@ function ServicesEditor() {
     const storedServices = localStorage.getItem(LOCALSTORAGE_SERVICES_KEY);
     if (storedServices) {
       setServices(JSON.parse(storedServices));
+    } else {
+      setServices(SERVICES_DATA); // Initialize with default if nothing in LS
     }
   }, []);
 
@@ -209,6 +217,8 @@ function ProjectsEditor() {
     const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
     if (storedProjects) {
       setProjects(JSON.parse(storedProjects));
+    } else {
+      setProjects(PROJECTS_DATA); // Initialize with default if nothing in LS
     }
   }, []);
 
@@ -238,7 +248,9 @@ function ProjectsEditor() {
       longDescription: '', 
       imageUrl: 'https://placehold.co/600x400.png', 
       tags: [], 
-      imageHint: 'new project'
+      imageHint: 'new project',
+      liveUrl: '',
+      sourceUrl: ''
     }]);
   };
 
@@ -328,6 +340,8 @@ function ContactEditor() {
     const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
     if (storedContactInfo) {
       setContactInfo(JSON.parse(storedContactInfo));
+    } else {
+      setContactInfo(CONTACT_INFO); // Initialize with default
     }
   }, []);
 
@@ -395,15 +409,174 @@ function ContactEditor() {
   );
 }
 
+function MessagesManager() {
+  const [messages, setMessages] = useState<AdminMessage[]>([]);
+  const [newMessage, setNewMessage] = useState({ name: '', email: '', message: '' });
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
+    if (storedMessages) {
+      setMessages(JSON.parse(storedMessages));
+    }
+  }, []);
+
+  const handleSaveMessages = (updatedMessages: AdminMessage[]) => {
+    localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(updatedMessages));
+    setMessages(updatedMessages);
+  };
+
+  const handleAddMessage = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.name || !newMessage.email || !newMessage.message) {
+      toast({ title: "Missing fields", description: "Please fill in all fields for the message.", variant: "destructive" });
+      return;
+    }
+    const messageToAdd: AdminMessage = {
+      ...newMessage,
+      id: `msg-${Date.now()}`,
+      receivedAt: new Date().toISOString(),
+    };
+    const updatedMessages = [...messages, messageToAdd];
+    handleSaveMessages(updatedMessages);
+    setNewMessage({ name: '', email: '', message: '' });
+    toast({ title: "Message Added", description: "Mock message saved to local storage." });
+  };
+
+  const handleRemoveMessage = (id: string) => {
+    const updatedMessages = messages.filter(msg => msg.id !== id);
+    handleSaveMessages(updatedMessages);
+    toast({ title: "Message Removed" });
+  };
+  
+  const handleClearAllMessages = () => {
+    handleSaveMessages([]);
+    setSummary(null); // Clear summary as well
+    toast({ title: "All Messages Cleared" });
+  };
+
+  const handleSummarize = async () => {
+    if (messages.length === 0) {
+      toast({ title: "No Messages", description: "Add some messages before summarizing.", variant: "default" });
+      return;
+    }
+    setIsLoadingSummary(true);
+    setSummary(null);
+    try {
+      const input: SummarizeMessagesInput = { messages };
+      const result = await summarizeMessages(input);
+      setSummary(result.summary);
+      toast({ title: "AI Summary Generated!", variant: "default" });
+    } catch (error) {
+      console.error("Error summarizing messages:", error);
+      toast({ title: "AI Error", description: "Could not summarize messages.", variant: "destructive" });
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Messages & AI Summary</CardTitle>
+        <CardDescription>Manage mock user messages and use AI to summarize them.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleAddMessage} className="p-4 border rounded-lg space-y-3 bg-secondary/20">
+          <h4 className="text-lg font-medium text-foreground">Add New Mock Message</h4>
+          <div>
+            <Label htmlFor="msg-name">Name</Label>
+            <Input id="msg-name" value={newMessage.name} onChange={e => setNewMessage({...newMessage, name: e.target.value})} placeholder="John Doe" className="bg-input"/>
+          </div>
+          <div>
+            <Label htmlFor="msg-email">Email</Label>
+            <Input id="msg-email" type="email" value={newMessage.email} onChange={e => setNewMessage({...newMessage, email: e.target.value})} placeholder="john@example.com" className="bg-input"/>
+          </div>
+          <div>
+            <Label htmlFor="msg-content">Message</Label>
+            <Textarea id="msg-content" value={newMessage.message} onChange={e => setNewMessage({...newMessage, message: e.target.value})} placeholder="Inquiry about project..." rows={3} className="bg-input"/>
+          </div>
+          <Button type="submit" size="sm"><PlusCircle className="mr-2 h-4 w-4"/> Add Message</Button>
+        </form>
+
+        <div className="space-y-4">
+          <h4 className="text-lg font-medium text-foreground">Current Messages ({messages.length})</h4>
+          {messages.length === 0 && <p className="text-muted-foreground">No messages yet. Add some using the form above.</p>}
+          <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+            {messages.map(msg => (
+              <Card key={msg.id} className="p-3 bg-card">
+                <p className="text-sm text-muted-foreground"><strong>From:</strong> {msg.name} ({msg.email})</p>
+                <p className="text-sm text-muted-foreground"><strong>Received:</strong> {new Date(msg.receivedAt).toLocaleString()}</p>
+                <p className="mt-1 text-foreground">{msg.message}</p>
+                <Button variant="destructive" size="xs" onClick={() => handleRemoveMessage(msg.id)} className="mt-2">
+                  <Trash2 className="mr-1 h-3 w-3"/> Remove
+                </Button>
+              </Card>
+            ))}
+          </div>
+           {messages.length > 0 && (
+            <Button variant="outline" onClick={handleClearAllMessages} size="sm">
+              <Trash2 className="mr-2 h-4 w-4"/> Clear All Messages
+            </Button>
+          )}
+        </div>
+       
+        <div className="space-y-2">
+            <Button onClick={handleSummarize} disabled={isLoadingSummary || messages.length === 0} className="w-full">
+                <BotMessageSquare className="mr-2 h-5 w-5" />
+                {isLoadingSummary ? "Summarizing with AI..." : "Summarize Messages with AI"}
+            </Button>
+            {summary && (
+            <Card className="p-4 bg-primary/10 border-primary/50">
+                <CardTitle className="text-md text-primary mb-2">AI Summary:</CardTitle>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{summary}</p>
+            </Card>
+            )}
+        </div>
+
+      </CardContent>
+       <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleClearAllMessages}>Clear Messages from Local Storage</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
 
 function AdminDashboard() {
   return (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-foreground">Admin Dashboard</h2>
-      <AboutEditor />
-      <ServicesEditor />
-      <ProjectsEditor />
-      <ContactEditor />
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-foreground">Admin Dashboard</h2>
+        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage.</p>
+      </div>
+
+      <Tabs defaultValue="about" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6 h-auto flex-wrap">
+          <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About Me</TabsTrigger>
+          <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
+          <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
+          <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact Info</TabsTrigger>
+          <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages & AI</TabsTrigger>
+        </TabsList>
+        <TabsContent value="about">
+          <AboutEditor />
+        </TabsContent>
+        <TabsContent value="services">
+          <ServicesEditor />
+        </TabsContent>
+        <TabsContent value="projects">
+          <ProjectsEditor />
+        </TabsContent>
+        <TabsContent value="contact">
+          <ContactEditor />
+        </TabsContent>
+        <TabsContent value="messages">
+          <MessagesManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -414,14 +587,28 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
 
+  // Check auth status on mount, useful for page reloads if already authenticated
+  useEffect(() => {
+     if(sessionStorage.getItem('adminAuthenticated') === 'true') {
+       setIsAuthenticated(true);
+     }
+  },[])
+
   const handleLogin = () => {
     if (secretKey === ADMIN_SECRET_KEY) {
       setIsAuthenticated(true);
+      sessionStorage.setItem('adminAuthenticated', 'true'); // Persist auth state for session
       toast({ title: "Access Granted", description: "Welcome to the Admin Panel!", variant: "default" });
     } else {
       toast({ title: "Access Denied", description: "Incorrect secret key.", variant: "destructive" });
     }
   };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('adminAuthenticated');
+    toast({title: "Logged Out", description: "You have been logged out of the admin panel."});
+  }
 
   if (!isAuthenticated) {
     return (
@@ -459,6 +646,9 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-secondary/10 p-4 md:p-8">
       <Container>
+        <Button onClick={handleLogout} variant="outline" className="mb-6">
+          <Lock className="mr-2 h-4 w-4" /> Logout from Admin
+        </Button>
         <AdminDashboard />
       </Container>
     </div>
