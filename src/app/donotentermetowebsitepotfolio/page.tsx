@@ -19,7 +19,11 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop } from 'lucide-react';
+import { generateHeroText, type GenerateHeroTextInput, type GenerateHeroTextOutput } from '@/ai/flows/generate-hero-text-flow';
+import { generateServiceItem, type GenerateServiceItemInput, type GenerateServiceItemOutput } from '@/ai/flows/generate-service-item-flow';
+import { generateProjectHighlight, type GenerateProjectHighlightInput, type GenerateProjectHighlightOutput } from '@/ai/flows/generate-project-highlight-flow';
+
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -777,8 +781,191 @@ function MessagesManager() {
         </div>
       </CardContent>
        <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handleClearAllMessages}>Clear All Messages from Local Storage</Button>
+         {/* Removed redundant clear all messages button, one is already in CardContent */}
       </CardFooter>
+    </Card>
+  );
+}
+
+type AIContentBlockType = 'hero' | 'about' | 'service' | 'project';
+
+interface AIOutput {
+  title?: string;
+  text?: string;
+  json?: string;
+}
+
+function AIContentIdeasGenerator() {
+  const [blockType, setBlockType] = useState<AIContentBlockType>('hero');
+  const [inputs, setInputs] = useState<Record<string, any>>({});
+  const [output, setOutput] = useState<AIOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleInputChange = (field: string, value: string | string[]) => {
+    setInputs(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    setOutput(null);
+    try {
+      let result: any;
+      if (blockType === 'hero') {
+        const heroInput: GenerateHeroTextInput = {
+          topic: inputs.topic || 'Atif R.',
+          keywords: inputs.keywords?.split(',').map((k: string) => k.trim()) || KEY_SKILLS.slice(0,3),
+          tone: inputs.tone || 'engaging',
+          roleFocus: inputs.roleFocus || 'Full-Stack Developer',
+        };
+        result = await generateHeroText(heroInput);
+        setOutput({ title: "Generated Hero Text", json: JSON.stringify(result, null, 2) });
+      } else if (blockType === 'about') {
+        const aboutInput: GenerateAboutTextInput = {
+          currentText: inputs.currentText || '',
+          keywords: inputs.keywords?.split(',').map((k: string) => k.trim()) || KEY_SKILLS.slice(0,5),
+          tone: inputs.tone || 'professional',
+        };
+        result = await generateAboutText(aboutInput);
+        setOutput({ title: "Generated About Paragraph", text: result.suggestedText });
+      } else if (blockType === 'service') {
+        const serviceInput: GenerateServiceItemInput = {
+          serviceFocus: inputs.serviceFocus || 'Web Development',
+          targetAudience: inputs.targetAudience || '',
+          keyBenefits: inputs.keyBenefits?.split(',').map((k: string) => k.trim()) || [],
+          tone: inputs.tone || 'professional',
+        };
+        result = await generateServiceItem(serviceInput);
+        setOutput({ title: "Generated Service Item", json: JSON.stringify(result, null, 2) });
+      } else if (blockType === 'project') {
+        const projectInput: GenerateProjectHighlightInput = {
+          projectCategory: inputs.projectCategory || 'E-commerce Platform',
+          coreTechnologies: inputs.coreTechnologies?.split(',').map((k: string) => k.trim()) || [],
+          uniqueSellingPoints: inputs.uniqueSellingPoints?.split(',').map((k: string) => k.trim()) || [],
+          clientIndustry: inputs.clientIndustry || '',
+        };
+        result = await generateProjectHighlight(projectInput);
+        setOutput({ title: "Generated Project Highlight", json: JSON.stringify(result, null, 2) });
+      }
+      toast({ title: "AI Content Generated!", description: `Content for ${blockType} generated successfully.` });
+    } catch (error) {
+      console.error(`Error generating AI content for ${blockType}:`, error);
+      toast({ title: "AI Error", description: `Could not generate content for ${blockType}. Please try again.`, variant: "destructive" });
+      setOutput({ title: `Error generating ${blockType} content`, text: "An error occurred." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderInputs = () => {
+    switch (blockType) {
+      case 'hero':
+        return (
+          <>
+            <Input placeholder="Topic (e.g., Atif R.)" value={inputs.topic || ''} onChange={e => handleInputChange('topic', e.target.value)} className="bg-input" />
+            <Input placeholder="Keywords (comma-separated, e.g., Full-Stack,UI/UX)" value={inputs.keywords || ''} onChange={e => handleInputChange('keywords', e.target.value)} className="bg-input" />
+            <Input placeholder="Primary Role Focus (e.g., Graphics Designer)" value={inputs.roleFocus || ''} onChange={e => handleInputChange('roleFocus', e.target.value)} className="bg-input" />
+            <Select value={inputs.tone || 'engaging'} onValueChange={value => handleInputChange('tone', value)}>
+              <SelectTrigger className="bg-input"><SelectValue placeholder="Select Tone" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="engaging">Engaging</SelectItem>
+                <SelectItem value="bold">Bold</SelectItem>
+                <SelectItem value="innovative">Innovative</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        );
+      case 'about':
+        return (
+          <>
+            <Textarea placeholder="Current text (optional, for refinement)" value={inputs.currentText || ''} onChange={e => handleInputChange('currentText', e.target.value)} className="bg-input" rows={3}/>
+            <Input placeholder="Keywords (comma-separated)" value={inputs.keywords || ''} onChange={e => handleInputChange('keywords', e.target.value)} className="bg-input" />
+            <Select value={inputs.tone || 'professional'} onValueChange={value => handleInputChange('tone', value)}>
+              <SelectTrigger className="bg-input"><SelectValue placeholder="Select Tone" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="friendly">Friendly</SelectItem>
+                <SelectItem value="innovative">Innovative</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        );
+      case 'service':
+        return (
+          <>
+            <Input placeholder="Service Focus (e.g., Web Development)" value={inputs.serviceFocus || ''} onChange={e => handleInputChange('serviceFocus', e.target.value)} className="bg-input" />
+            <Input placeholder="Target Audience (optional)" value={inputs.targetAudience || ''} onChange={e => handleInputChange('targetAudience', e.target.value)} className="bg-input" />
+            <Input placeholder="Key Benefits (comma-separated)" value={inputs.keyBenefits || ''} onChange={e => handleInputChange('keyBenefits', e.target.value)} className="bg-input" />
+             <Select value={inputs.tone || 'professional'} onValueChange={value => handleInputChange('tone', value)}>
+              <SelectTrigger className="bg-input"><SelectValue placeholder="Select Tone" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="creative">Creative</SelectItem>
+                <SelectItem value="technical">Technical</SelectItem>
+                <SelectItem value="approachable">Approachable</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        );
+      case 'project':
+        return (
+          <>
+            <Input placeholder="Project Category (e.g., E-commerce Platform)" value={inputs.projectCategory || ''} onChange={e => handleInputChange('projectCategory', e.target.value)} className="bg-input" />
+            <Input placeholder="Core Technologies (comma-separated)" value={inputs.coreTechnologies || ''} onChange={e => handleInputChange('coreTechnologies', e.target.value)} className="bg-input" />
+            <Input placeholder="Unique Selling Points (comma-separated)" value={inputs.uniqueSellingPoints || ''} onChange={e => handleInputChange('uniqueSellingPoints', e.target.value)} className="bg-input" />
+            <Input placeholder="Client Industry (optional)" value={inputs.clientIndustry || ''} onChange={e => handleInputChange('clientIndustry', e.target.value)} className="bg-input" />
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>AI Content Ideas Generator</CardTitle>
+        <CardDescription>Generate content snippets for different parts of your portfolio. The output can be copied and adapted.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="block-type-select">Content Block Type</Label>
+          <Select value={blockType} onValueChange={(value) => { setBlockType(value as AIContentBlockType); setInputs({}); setOutput(null); }}>
+            <SelectTrigger id="block-type-select" className="bg-input">
+              <SelectValue placeholder="Select block type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hero">Hero Text Block</SelectItem>
+              <SelectItem value="about">About Paragraph Block</SelectItem>
+              <SelectItem value="service">Service Item Block</SelectItem>
+              <SelectItem value="project">Project Highlight Block</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3 p-4 border rounded-md bg-secondary/20">
+          <h4 className="font-medium">Inputs for {blockType.charAt(0).toUpperCase() + blockType.slice(1)} Block:</h4>
+          {renderInputs()}
+        </div>
+        
+        <Button onClick={handleGenerate} disabled={isLoading} className="w-full">
+          <Sparkles className="mr-2 h-4 w-4" />
+          {isLoading ? `Generating ${blockType} content...` : `Generate ${blockType.charAt(0).toUpperCase() + blockType.slice(1)} Content`}
+        </Button>
+
+        {output && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-lg text-primary">{output.title || "Generated Output"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {output.text && <p className="whitespace-pre-wrap text-sm">{output.text}</p>}
+              {output.json && <Textarea value={output.json} readOnly rows={10} className="bg-input/50 text-xs font-mono" />}
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -793,7 +980,7 @@ function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 mb-6 h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 mb-6 h-auto flex-wrap">
           <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
@@ -801,6 +988,7 @@ function AdminDashboard() {
           <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact</TabsTrigger>
           <TabsTrigger value="navigation" className="py-2"><MenuSquareIcon className="mr-2 h-5 w-5"/>Navigation</TabsTrigger>
           <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages</TabsTrigger>
+          <TabsTrigger value="ai_content" className="py-2"><Lightbulb className="mr-2 h-5 w-5"/>AI Content</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           <AboutEditor />
@@ -822,6 +1010,9 @@ function AdminDashboard() {
         </TabsContent>
         <TabsContent value="messages">
           <MessagesManager />
+        </TabsContent>
+         <TabsContent value="ai_content">
+          <AIContentIdeasGenerator />
         </TabsContent>
       </Tabs>
     </div>
