@@ -87,14 +87,25 @@ const summarizeMessagesFlow = ai.defineFlow(
     outputSchema: SummarizeMessagesOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    if (!output) {
-        // This can happen if the LLM call fails (e.g., API key issue, network error)
-        // or if the model's response doesn't conform to the output schema, or if it's blocked by safety settings despite adjustments.
-        console.error('Summarize messages flow: LLM did not return a valid output or the output was null. Check API key and server logs.');
-        throw new Error("AI model failed to generate a summary. This could be due to API key issues, network problems, or content filters. Please check server logs for more details.");
+    try {
+      const {output} = await prompt(input); // This is the call to the LLM
+      if (!output) {
+          console.error('Summarize messages flow: LLM did not return a valid output or the output was null. This could be due to API key issues, model compatibility, content filters, or the model not adhering to the output schema. Check API key and server logs for details from the Genkit/Google AI plugin.');
+          throw new Error("AI model failed to generate a summary. The model returned no valid output. Please check server logs for more details from the AI provider.");
+      }
+      return output;
+    } catch (error: any) {
+      console.error('Summarize messages flow: An exception occurred during the AI prompt execution. Full error:', error);
+      // Construct a more informative error message
+      let errorMessage = "AI model failed to generate a summary due to an unexpected error during the AI call.";
+      if (error.message) {
+        errorMessage += ` Details: ${error.message}`;
+      }
+      // It's good practice to avoid exposing raw error details to the client in production,
+      // but for debugging in the admin panel, this can be helpful.
+      // The console.error above will have the full details for server-side inspection.
+      throw new Error(errorMessage + " Please check server logs for specific error codes or messages from the AI provider.");
     }
-    return output;
   }
 );
 
