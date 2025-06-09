@@ -24,13 +24,24 @@ export async function sendInquiryEmails(data: InquiryData): Promise<{ success: b
   }
 
   // 1. Email to User (Confirmation)
-  const userSubject = `Thank you for your inquiry - ${siteName}`;
-  const userHtml = `
+  let userSubject = `Thank you for your inquiry - ${siteName}`;
+  let userHtml = `
     <p>Hello ${data.name},</p>
     <p>Thank you for reaching out to ${siteName}. We have received your ${data.type.toLowerCase()} and will get back to you as soon as possible.</p>
-    ${data.type === 'Project Service Inquiry' && data.projectTitle ? `<p><strong>Regarding Project:</strong> ${data.projectTitle}</p>` : ''}
     <p>Best regards,<br/>The ${siteName} Team</p>
   `;
+
+  if (data.type === 'Project Service Inquiry') {
+    userSubject = `Your inquiry about "${data.projectTitle || 'our services'}" - ${siteName}`;
+    userHtml = `
+      <p>Hello ${data.name},</p>
+      <p>Thank you for your interest in ${siteName}. We have received your inquiry regarding "${data.projectTitle || 'our services'}" and will review your details.</p>
+      ${data.clientProjectIdea ? `<p><strong>Your described idea/requirements:</strong><br/>${data.clientProjectIdea.replace(/\n/g, '<br/>')}</p>` : ''}
+      <p>We will get back to you as soon as possible.</p>
+      <p>Best regards,<br/>The ${siteName} Team</p>
+    `;
+  }
+  
   const userEmailResult = await sendEmail({
     to: data.email,
     subject: userSubject,
@@ -44,23 +55,10 @@ export async function sendInquiryEmails(data: InquiryData): Promise<{ success: b
 
   // 2. Email to Admin (Notification)
   const adminSubject = `New ${data.type} from ${data.name} - ${siteName}`;
-  let adminHtml = `
-    <p>You have received a new ${data.type.toLowerCase()} via the ${siteName} website:</p>
-    <ul>
-      <li><strong>Name:</strong> ${data.name}</li>
-      <li><strong>Email:</strong> ${data.email}</li>
-      ${data.type === 'Project Service Inquiry' && data.projectTitle ? `<li><strong>Regarding Project:</strong> ${data.projectTitle}</li>` : ''}
-      ${data.clientProjectIdea ? `<li><strong>Client's Project Idea/Requirements:</strong><br/>${data.clientProjectIdea.replace(/\n/g, '<br/>')}</li>` : ''}
-      ${data.aiGeneratedIdeas ? `<li><strong>AI Suggested Ideas (for reference):</strong><br/>${data.aiGeneratedIdeas.replace(/\n/g, '<br/>')}</li>` : ''}
-      ${data.type === 'General Contact' ? `<li><strong>Message:</strong><br/>${data.message.replace(/\n/g, '<br/>')}</li>` : ''}
-    </ul>
-    <p>Please follow up with them at your earliest convenience.</p>
-  `;
-  
-  // If it's a project service inquiry, the main message content is combined
+  let adminHtmlBody = '';
+
   if (data.type === 'Project Service Inquiry') {
-     adminHtml = `
-      <p>You have received a new ${data.type.toLowerCase()} via the ${siteName} website:</p>
+    adminHtmlBody = `
       <ul>
         <li><strong>Name:</strong> ${data.name}</li>
         <li><strong>Email:</strong> ${data.email}</li>
@@ -68,10 +66,22 @@ export async function sendInquiryEmails(data: InquiryData): Promise<{ success: b
         <li><strong>Client's Project Idea/Requirements:</strong><br/>${(data.clientProjectIdea || data.message).replace(/\n/g, '<br/>')}</li>
         ${data.aiGeneratedIdeas ? `<li><strong>AI Suggested Ideas (for reference):</strong><br/>${data.aiGeneratedIdeas.replace(/\n/g, '<br/>')}</li>` : ''}
       </ul>
-      <p>Please follow up with them at your earliest convenience.</p>
+    `;
+  } else { // General Contact
+     adminHtmlBody = `
+      <ul>
+        <li><strong>Name:</strong> ${data.name}</li>
+        <li><strong>Email:</strong> ${data.email}</li>
+        <li><strong>Message:</strong><br/>${data.message.replace(/\n/g, '<br/>')}</li>
+      </ul>
     `;
   }
 
+  const adminHtml = `
+    <p>You have received a new ${data.type.toLowerCase()} via the ${siteName} website:</p>
+    ${adminHtmlBody}
+    <p>Please follow up with them at your earliest convenience.</p>
+  `;
 
   const adminEmailResult = await sendEmail({
     to: adminEmail,
