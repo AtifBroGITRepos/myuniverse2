@@ -191,4 +191,138 @@ export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
+export const LOCALSTORAGE_EMAIL_TEMPLATES_KEY = "admin_email_templates";
 
+export interface EmailTemplates {
+  userConfirmationGeneralHTML: string;
+  userConfirmationProjectHTML: string;
+  adminNotificationGeneralHTML: string;
+  adminNotificationProjectHTML: string;
+}
+
+const siteName = "Atif's Universe";
+const currentYear = new Date().getFullYear();
+
+// These default templates are now used to initialize the EmailTemplatesEditor
+// The actual sendInquiryEmails action directly defines its HTML.
+// If you want to change the *actual* emails sent, you need to modify src/app/actions/send-inquiry-email.ts
+export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
+  userConfirmationGeneralHTML: `
+<html>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
+    <tr>
+      <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">{{siteName}}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 20px;">
+        <p style="font-size: 16px; color: #333333;">Hello {{userName}},</p>
+        <p style="font-size: 16px; color: #333333;">Thank you for reaching out to {{siteName}}. We have received your message and will get back to you as soon as possible.</p>
+        <p style="font-size: 16px; color: #333333; margin-top: 20px;"><strong>Your message:</strong></p>
+        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9;">
+          {{userMessage}}
+        </div>
+        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
+        &copy; {{currentYear}} {{siteName}}. All rights reserved.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  userConfirmationProjectHTML: `
+<html>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
+    <tr>
+      <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">{{siteName}}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 20px;">
+        <p style="font-size: 16px; color: #333333;">Hello {{userName}},</p>
+        <p style="font-size: 16px; color: #333333;">Thank you for your interest in {{siteName}}. We have received your inquiry regarding "<strong>{{projectTitleForEmail}}</strong>".</p>
+        {{clientProjectIdeaHTML}}
+        <p style="font-size: 16px; color: #333333; margin-top: 20px;">We will review your details and get back to you as soon as possible.</p>
+        <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
+        &copy; {{currentYear}} {{siteName}}. All rights reserved.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  adminNotificationGeneralHTML: `
+<html>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
+    <tr>
+      <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Inquiry - {{siteName}}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 20px;">
+        <p style="font-size: 16px; color: #333333;">You have received a new general contact via the {{siteName}} website:</p>
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
+        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> {{userName}}</p>
+        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:{{userEmail}}" style="color: #39FF14; text-decoration: none;">{{userEmail}}</a></p>
+        <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Message:</strong></p>
+        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
+          {{userMessage}}
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
+        <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
+        This is an automated notification from {{siteName}}.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  adminNotificationProjectHTML: `
+<html>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px;">
+    <tr>
+      <td style="padding: 20px; text-align: center; background-color: #0D0D0D; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="color: #39FF14; margin: 0; font-size: 24px;">New Project Inquiry - {{siteName}}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 20px;">
+        <p style="font-size: 16px; color: #333333;">You have received a new project service inquiry via the {{siteName}} website:</p>
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
+        <p style="font-size: 16px; color: #333333;"><strong>Name:</strong> {{userName}}</p>
+        <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:{{userEmail}}" style="color: #39FF14; text-decoration: none;">{{userEmail}}</a></p>
+        <p style="font-size: 16px; color: #333333;"><strong>Regarding Project:</strong> {{projectTitleForEmail}}</p>
+        <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Client's Project Idea/Requirements:</strong></p>
+        <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
+          {{clientProjectIdea}}
+        </div>
+        {{aiGeneratedIdeasHTML}}
+        <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
+        <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee;">
+         This is an automated notification from {{siteName}}.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+};

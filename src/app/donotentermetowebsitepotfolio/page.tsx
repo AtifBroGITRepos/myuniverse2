@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY,
+  DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
@@ -26,7 +27,7 @@ import { suggestSectionStructure, type SuggestSectionStructureInput } from '@/ai
 import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -713,10 +714,14 @@ function MessagesManager() {
       const result = await summarizeMessages(input);
       setSummary(result.summary);
       toast({ title: "AI Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error summarizing messages:", error);
-      setSummary("Error: Could not generate summary.");
-      toast({ title: "AI Error", description: "Could not summarize messages. Please try again.", variant: "destructive" });
+      let errorMessage = "Could not generate summary.";
+      if (error && typeof error.message === 'string') {
+          errorMessage = error.message;
+      }
+      setSummary(`Error: ${errorMessage}`);
+      toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoadingSummary(false);
     }
@@ -761,7 +766,7 @@ function MessagesManager() {
               <Card key={msg.id} className="p-3 bg-card">
                 <p className="text-sm text-muted-foreground"><strong>From:</strong> {msg.name} ({msg.email})</p>
                 <p className="text-sm text-muted-foreground"><strong>Received:</strong> {new Date(msg.receivedAt).toLocaleString()}</p>
-                <p className="mt-1 text-foreground">{msg.message}</p>
+                <p className="mt-1 text-foreground whitespace-pre-wrap">{msg.message}</p>
                 <Button variant="destructive" size="xs" onClick={() => handleRemoveMessage(msg.id)} className="mt-2">
                   <Trash2 className="mr-1 h-3 w-3"/> Remove
                 </Button>
@@ -1001,11 +1006,6 @@ function AIContentIdeasGenerator() {
 }
 
 function SmtpConfigViewer() {
-  // In a real app, these values would ideally be fetched from a secure server endpoint
-  // For this client-side example, we'll indicate they are server-managed.
-  const emailFrom = process.env.NEXT_PUBLIC_EMAIL_FROM_DISPLAY || "Not Displayed (Server Configured)";
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL_DISPLAY || "Not Displayed (Server Configured)";
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -1019,17 +1019,20 @@ function SmtpConfigViewer() {
         <div className="p-4 border rounded-lg bg-secondary/20">
           <h4 className="text-lg font-medium text-foreground mb-2">Email Sending Status</h4>
           <p className="text-sm text-muted-foreground">
-            The email system uses SMTP settings defined in the server's environment variables.
-            This ensures your credentials remain secure.
+            The email system uses SMTP settings defined in the server's environment variables (`.env` file).
+            This ensures your credentials remain secure. Email sending is active if all required SMTP variables are set.
           </p>
         </div>
         <div className="p-4 border rounded-lg bg-secondary/20">
-          <h4 className="text-lg font-medium text-foreground mb-2">Key Configuration Points</h4>
+          <h4 className="text-lg font-medium text-foreground mb-2">Key Configuration Points (from Server Environment)</h4>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
             <li><strong>SMTP Host, Port, User, Password, Secure Flag:</strong> Set via server environment variables. Not displayed here for security.</li>
-            <li><strong>Default "From" Address for System Emails:</strong> All emails sent by the system (e.g., inquiry confirmations) will originate from an address configured on the server (`EMAIL_FROM`).</li>
-            <li><strong>Admin Notification Recipient:</strong> Admin notifications for new inquiries are sent to an email address configured on the server (`ADMIN_EMAIL`).</li>
+            <li><strong>Default "From" Address for System Emails (`EMAIL_FROM`):</strong> All emails sent by the system (e.g., inquiry confirmations) will originate from this address.</li>
+            <li><strong>Admin Notification Recipient (`ADMIN_EMAIL`):</strong> Admin notifications for new inquiries are sent to this email address.</li>
           </ul>
+           <p className="text-xs text-muted-foreground mt-2">
+            If these environment variables are not set correctly on the server, email functionality will not work.
+          </p>
         </div>
          <div className="p-4 border rounded-lg bg-secondary/20">
           <h4 className="text-lg font-medium text-foreground mb-2">To Change SMTP Settings:</h4>
@@ -1137,6 +1140,97 @@ function AdminMailSender() {
   );
 }
 
+function EmailTemplatesEditor() {
+  const [templates, setTemplates] = useState<EmailTemplates>(DEFAULT_EMAIL_TEMPLATES);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedTemplates = localStorage.getItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
+    if (storedTemplates) {
+      try {
+        setTemplates(JSON.parse(storedTemplates));
+      } catch (e) {
+        console.error("Error parsing email templates from localStorage", e);
+        setTemplates(DEFAULT_EMAIL_TEMPLATES);
+        toast({ title: "Load Error", description: "Could not load saved email templates, reset to default.", variant: "destructive" });
+      }
+    } else {
+      setTemplates(DEFAULT_EMAIL_TEMPLATES);
+    }
+  }, [toast]);
+
+  const handleTemplateChange = (templateName: keyof EmailTemplates, value: string) => {
+    setTemplates(prev => ({ ...prev, [templateName]: value }));
+  };
+
+  const handleSave = () => {
+    localStorage.setItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY, JSON.stringify(templates));
+    toast({ title: "Success!", description: "Email templates saved to local storage." });
+  };
+
+  const handleReset = () => {
+    setTemplates(DEFAULT_EMAIL_TEMPLATES);
+    localStorage.removeItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
+    toast({ title: "Reset Successful", description: "Email templates reset to default values." });
+  };
+
+  const availablePlaceholders = [
+    { name: "{{siteName}}", desc: "Your website's name." },
+    { name: "{{currentYear}}", desc: "The current year." },
+    { name: "{{userName}}", desc: "The name of the person who submitted the form." },
+    { name: "{{userEmail}}", desc: "The email of the person who submitted the form." },
+    { name: "{{userMessage}}", desc: "The message content from a general contact form (auto nl2br)." },
+    { name: "{{projectTitleForEmail}}", desc: "The project title for service inquiries (or 'our services')." },
+    { name: "{{clientProjectIdea}}", desc: "The client's project idea for service inquiries (auto nl2br)." },
+    { name: "{{clientProjectIdeaHTML}}", desc: "HTML block for client's project idea (user confirmation email)." },
+    { name: "{{aiGeneratedIdeas}}", desc: "AI generated ideas for service inquiries (auto nl2br)." },
+    { name: "{{aiGeneratedIdeasHTML}}", desc: "HTML block for AI generated ideas (admin notification email)." },
+  ];
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Email Template Editor</CardTitle>
+        <CardDescription>
+          Customize the HTML templates for emails sent by the system. Templates are saved in your browser's local storage.
+          <br />
+          <strong>Important:</strong> To make these templates live, you must manually copy the HTML from here and paste it into the 
+          `src/app/actions/send-inquiry-email.ts` file on your server, then redeploy your application.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <div>
+          <h4 className="font-medium text-lg mb-2">Available Placeholders:</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+            {availablePlaceholders.map(p => <li key={p.name}><strong>{p.name}</strong>: {p.desc}</li>)}
+          </ul>
+           <p className="text-xs text-primary mt-2">Note: 'auto nl2br' means new lines in the input are converted to &lt;br/&gt; tags automatically by the server before insertion.</p>
+        </div>
+
+        {(Object.keys(templates) as Array<keyof EmailTemplates>).map((templateName) => (
+          <div key={templateName} className="space-y-2">
+            <Label htmlFor={`template-${templateName}`} className="text-base font-semibold capitalize">
+              {templateName.replace(/([A-Z])/g, ' $1').replace(/HTML$/, '').trim()} Template
+            </Label>
+            <Textarea
+              id={`template-${templateName}`}
+              value={templates[templateName]}
+              onChange={(e) => handleTemplateChange(templateName, e.target.value)}
+              rows={15}
+              className="bg-input text-foreground border-border focus:ring-primary font-mono text-xs"
+              placeholder={`Enter HTML for ${templateName.replace(/([A-Z])/g, ' $1').trim()}...`}
+            />
+          </div>
+        ))}
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleReset}>Reset to Defaults</Button>
+        <Button onClick={handleSave}>Save Templates to Local Storage</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
 
 function AdminDashboard() {
   return (
@@ -1147,7 +1241,7 @@ function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 mb-6 h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-11 mb-6 h-auto flex-wrap">
           <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
@@ -1158,6 +1252,7 @@ function AdminDashboard() {
           <TabsTrigger value="ai_content" className="py-2"><Lightbulb className="mr-2 h-5 w-5"/>AI Content</TabsTrigger>
           <TabsTrigger value="smtp_config" className="py-2"><Settings className="mr-2 h-5 w-5"/>SMTP Config</TabsTrigger>
           <TabsTrigger value="mail_sender" className="py-2"><MailPlus className="mr-2 h-5 w-5"/>Mail Sender</TabsTrigger>
+          <TabsTrigger value="email_templates" className="py-2"><LayoutTemplate className="mr-2 h-5 w-5"/>Email Templates</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           <AboutEditor />
@@ -1188,6 +1283,9 @@ function AdminDashboard() {
         </TabsContent>
         <TabsContent value="mail_sender">
           <AdminMailSender />
+        </TabsContent>
+        <TabsContent value="email_templates">
+          <EmailTemplatesEditor />
         </TabsContent>
       </Tabs>
     </div>
