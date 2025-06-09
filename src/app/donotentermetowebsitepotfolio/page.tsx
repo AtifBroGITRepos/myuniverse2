@@ -32,7 +32,7 @@ import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -1509,13 +1509,28 @@ function SiteSettingsEditor() {
           </p>
         </div>
          <div>
-          <Label className="text-foreground">Favicon Management</Label>
+          <Label className="text-foreground font-medium">Favicon Management</Label>
            <Alert variant="default" className="bg-secondary/30 border-secondary/50 mt-1">
-              <InfoCircledIcon className="h-5 w-5 text-muted-foreground" /> {/* Placeholder, replace with actual icon if available or remove */}
-              <AlertTitle className="text-sm font-medium text-foreground">Favicon Instructions</AlertTitle>
-              <AlertDescription className="text-xs text-muted-foreground">
-                Favicons (e.g., <code className="text-xs bg-muted p-0.5 rounded">favicon.ico</code>, <code className="text-xs bg-muted p-0.5 rounded">apple-touch-icon.png</code>, <code className="text-xs bg-muted p-0.5 rounded">icon.svg</code>) should be manually placed in the <code className="text-xs bg-muted p-0.5 rounded">public/</code> directory of your project.
-                If you change their names or add new types, you may need to update the corresponding <code className="text-xs bg-muted p-0.5 rounded">&lt;link&gt;</code> tags in the <code className="text-xs bg-muted p-0.5 rounded">&lt;head&gt;</code> section of your <code className="text-xs bg-muted p-0.5 rounded">src/app/layout.tsx</code> file.
+              <UploadCloud className="h-5 w-5 text-muted-foreground" />
+              <AlertTitle className="text-sm font-semibold text-foreground">How to Change Your Favicon</AlertTitle>
+              <AlertDescription className="text-xs text-muted-foreground space-y-1">
+                <p>Direct favicon upload from the admin panel is not supported due to server file system restrictions.</p>
+                <p>To update your site's favicon:</p>
+                <ol className="list-decimal list-inside ml-4">
+                  <li>Prepare your new favicon files (e.g., <code className="text-xs bg-muted px-1 rounded">favicon.ico</code>, <code className="text-xs bg-muted px-1 rounded">apple-touch-icon.png</code>, <code className="text-xs bg-muted px-1 rounded">icon.svg</code>).</li>
+                  <li>In your project's code, navigate to the <code className="text-xs bg-muted px-1 rounded">public/</code> directory.</li>
+                  <li>Replace the existing favicon files with your new ones. Ensure the filenames match those referenced in your layout.</li>
+                  <li>
+                    If you use different filenames or add new favicon types, update the <code className="text-xs bg-muted px-1 rounded">&lt;link&gt;</code> tags in the <code className="text-xs bg-muted px-1 rounded">&lt;head&gt;</code> section of your <code className="text-xs bg-muted px-1 rounded">src/app/layout.tsx</code> file. Common tags are already included there:
+                    <ul className="list-disc list-inside ml-4 mt-1">
+                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="icon" href="/favicon.ico" sizes="any" /&gt;</code></li>
+                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="icon" href="/icon.svg" type="image/svg+xml" /&gt;</code></li>
+                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="apple-touch-icon" href="/apple-touch-icon.png" /&gt;</code></li>
+                    </ul>
+                  </li>
+                  <li>Re-build and re-deploy your application.</li>
+                </ol>
+                <p className="mt-2">This manual process ensures favicons are correctly handled by Next.js's static asset system.</p>
               </AlertDescription>
             </Alert>
         </div>
@@ -1527,14 +1542,6 @@ function SiteSettingsEditor() {
     </Card>
   );
 }
-
-// Placeholder for InfoCircledIcon if not available in lucide-react
-// You can replace this with a suitable icon or remove it.
-const InfoCircledIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 15 15" fill="currentColor" {...props}>
-    <path fillRule="evenodd" clipRule="evenodd" d="M7.5 11C7.77614 11 8 10.7761 8 10.5C8 10.2239 7.77614 10 7.5 10C7.22386 10 7 10.2239 7 10.5C7 10.7761 7.22386 11 7.5 11ZM7.07189 4.5C7.07189 4.22386 7.29575 4 7.57189 4C7.84804 4 8.07189 4.22386 8.07189 4.5V8C8.07189 8.27614 7.84804 8.5 7.57189 8.5C7.29575 8.5 7.07189 8.27614 7.07189 8V4.5ZM7.5 0.5C3.63401 0.5 0.5 3.63401 0.5 7.5C0.5 11.366 3.63401 14.5 7.5 14.5C11.366 14.5 14.5 11.366 14.5 7.5C14.5 3.63401 11.366 0.5 7.5 0.5Z" />
-  </svg>
-);
 
 
 function AdminDashboard() {
@@ -1677,3 +1684,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
