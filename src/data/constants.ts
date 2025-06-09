@@ -1,6 +1,5 @@
 
 import type { LucideIcon } from 'lucide-react';
-// Removed direct icon imports here as they will be handled by the client component
 
 export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer, UI/UX enthusiast, and Professional Graphics Designer with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions, and is also available for Freelance projects.`;
 
@@ -9,7 +8,7 @@ export interface Project {
   title: string;
   description: string;
   longDescription: string;
-  imageUrl: string;
+  imageUrl: string; // Can be a URL or a Data URI for local admin edits
   tags: string[];
   liveUrl?: string;
   sourceUrl?: string;
@@ -107,11 +106,13 @@ export const KEY_SKILLS: string[] = [
   "Mobile Development (React Native)", "Agile Methodologies"
 ];
 
+export type ServiceIconName = 'Server' | 'Palette' | 'Briefcase' | 'Brain';
+
 export interface Service {
   id: string;
   title: string;
   description: string;
-  iconName: string; // Changed from 'icon: LucideIcon' to 'iconName: string'
+  iconName: ServiceIconName; 
 }
 
 export const SERVICES_DATA: Service[] = [
@@ -119,30 +120,39 @@ export const SERVICES_DATA: Service[] = [
     id: 'service-1',
     title: 'Web Development',
     description: 'Building responsive and scalable web applications tailored to your business needs, from front-end to back-end.',
-    iconName: 'Server', // Changed from 'icon: Server'
+    iconName: 'Server',
   },
   {
     id: 'service-2',
     title: 'UI/UX Design',
     description: 'Crafting intuitive and visually appealing user interfaces that enhance user experience and engagement.',
-    iconName: 'Palette', // Changed from 'icon: Palette'
+    iconName: 'Palette',
   },
   {
     id: 'service-3',
     title: 'Graphic Design',
     description: 'Creating stunning visuals, branding materials, and marketing assets that capture attention and tell your story.',
-    iconName: 'Briefcase', // Changed from 'icon: Briefcase'
+    iconName: 'Briefcase',
   },
   {
     id: 'service-4',
     title: 'AI Integration & Prompt Engineering',
     description: 'Leveraging artificial intelligence to build smart solutions and optimize interactions through expert prompt engineering.',
-    iconName: 'Brain', // Changed from 'icon: Brain'
+    iconName: 'Brain',
   },
 ];
 
-// Contact information - this might be managed by the admin panel later
-export const CONTACT_INFO = {
+export interface ContactDetails {
+  email: string;
+  phone: string;
+  location: string;
+  socials: {
+    github: string;
+    linkedin: string;
+    twitter: string;
+  }
+}
+export const CONTACT_INFO: ContactDetails = {
   email: "atif.codes@example.com",
   phone: "+1 (555) 123-4567",
   location: "Cyberjaya, Malaysia",
@@ -152,3 +162,4 @@ export const CONTACT_INFO = {
     twitter: "https://twitter.com/atif",
   }
 };
+

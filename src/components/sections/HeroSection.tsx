@@ -9,13 +9,11 @@ import Link from 'next/link';
 
 export function HeroSection() {
   const roles = [
-    "Full-Stack Developer", 
-    "UI/UX Designer", 
-    "Professional Graphics Designer", 
-    "Creative Thinker", 
-    "Freelancer", 
-    "Tech Innovator", 
-    "Problem Solver", 
+    "Graphics Designer", 
+    "Full Stack Developer", 
+    "Creative Thinker",
+    "UI/UX Designer",
+    "Freelancer",
     "Prompt Engineer"
   ];
 
@@ -62,3 +60,4 @@ export function HeroSection() {
     </section>
   );
 }
+
