@@ -14,7 +14,7 @@ export async function sendAdminComposedEmail(data: AdminEmailData): Promise<{ su
 
   if (!emailFrom) {
     console.error('EMAIL_FROM environment variable is not set. Cannot send admin composed email.');
-    return { success: false, error: 'Server configuration error: Email sender address not set.' };
+    return { success: false, error: 'Server configuration error: Email sender address (EMAIL_FROM) not set in .env file.' };
   }
   
   // Basic validation
@@ -31,8 +31,9 @@ export async function sendAdminComposedEmail(data: AdminEmailData): Promise<{ su
     });
 
     if (!emailResult.success) {
-      console.error('Failed to send admin composed email:', emailResult.error);
-      return { success: false, error: 'Failed to send email via provider.' };
+      console.error('Failed to send admin composed email via emailService:', emailResult.error);
+      // Return the more specific error from emailService
+      return { success: false, error: typeof emailResult.error === 'string' ? emailResult.error : 'Failed to send email. Check server logs for details.' };
     }
 
     return { success: true };
@@ -42,3 +43,4 @@ export async function sendAdminComposedEmail(data: AdminEmailData): Promise<{ su
     return { success: false, error: error.message || 'An unexpected error occurred while sending the email.' };
   }
 }
+
