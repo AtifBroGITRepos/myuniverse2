@@ -19,7 +19,7 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -116,7 +116,8 @@ function ServicesEditor() {
         setServices(JSON.parse(storedServices));
       } catch (e) {
         console.error("Error parsing services from localStorage", e);
-        setServices(SERVICES_DATA); // Fallback to default if parsing fails
+        setServices(SERVICES_DATA); 
+        toast({ title: "Load Error", description: "Could not load saved services, reset to default.", variant: "destructive" });
       }
     } else {
       setServices(SERVICES_DATA); 
@@ -142,7 +143,7 @@ function ServicesEditor() {
 
   const handleRemoveService = (index: number) => {
     setServices(services.filter((_, i) => i !== index));
-    toast({ title: "Service Removed", description: "The service has been removed. Remember to save your changes.", variant: "destructive" });
+    toast({ title: "Service Removed", description: "The service has been removed. Remember to save your changes.", variant: "default" });
   };
 
   const handleSave = () => {
@@ -231,6 +232,7 @@ function ProjectsEditor() {
       } catch (e) {
         console.error("Error parsing projects from localStorage", e);
         setProjects(PROJECTS_DATA);
+        toast({ title: "Load Error", description: "Could not load saved projects, reset to default.", variant: "destructive" });
       }
     } else {
       setProjects(PROJECTS_DATA);
@@ -272,7 +274,7 @@ function ProjectsEditor() {
 
   const handleRemoveProject = (index: number) => {
     setProjects(projects.filter((_, i) => i !== index));
-    toast({ title: "Project Removed", description: "The project has been removed. Remember to save your changes.", variant: "destructive" });
+    toast({ title: "Project Removed", description: "The project has been removed. Remember to save your changes.", variant: "default" });
   };
 
   const handleSave = () => {
@@ -310,6 +312,10 @@ function ProjectsEditor() {
             <div>
               <Label htmlFor={`project-imageurl-${index}`}>Image</Label>
               <Input id={`project-imageurl-${index}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(index, e)} className="bg-input"/>
+              <p className="text-xs text-muted-foreground mt-1">
+                <Crop className="inline-block h-3 w-3 mr-1" />
+                Recommended: 16:9 aspect ratio (e.g., 600x338). Full cropping feature not yet implemented.
+              </p>
               {project.imageUrl && (
                 <div className="mt-2 relative w-full aspect-video max-w-xs">
                   <Image src={project.imageUrl} alt="Preview" layout="fill" objectFit="contain" className="rounded"/>
@@ -361,6 +367,7 @@ function TestimonialsEditor() {
       } catch (e) {
         console.error("Error parsing testimonials from localStorage", e);
         setTestimonials(TESTIMONIALS_DATA);
+        toast({ title: "Load Error", description: "Could not load saved testimonials, reset to default.", variant: "destructive" });
       }
     } else {
       setTestimonials(TESTIMONIALS_DATA);
@@ -400,7 +407,7 @@ function TestimonialsEditor() {
 
   const handleRemoveTestimonial = (index: number) => {
     setTestimonials(testimonials.filter((_, i) => i !== index));
-    toast({ title: "Testimonial Removed", description: "Testimonial removed. Remember to save your changes.", variant: "destructive" });
+    toast({ title: "Testimonial Removed", description: "Testimonial removed. Remember to save your changes.", variant: "default" });
   };
 
   const handleSave = () => {
@@ -442,6 +449,10 @@ function TestimonialsEditor() {
             <div>
               <Label htmlFor={`testimonial-avatar-${index}`}>Avatar Image</Label>
               <Input id={`testimonial-avatar-${index}`} type="file" accept="image/*" onChange={(e) => handleAvatarFileChange(index, e)} className="bg-input"/>
+               <p className="text-xs text-muted-foreground mt-1">
+                <Crop className="inline-block h-3 w-3 mr-1" />
+                Recommended: 1:1 aspect ratio (e.g., 100x100). Full cropping feature not yet implemented.
+              </p>
               {testimonial.avatarUrl && (
                 <div className="mt-2 relative w-24 h-24">
                   <Image src={testimonial.avatarUrl} alt="Avatar Preview" layout="fill" objectFit="cover" className="rounded-full"/>
@@ -482,6 +493,7 @@ function ContactEditor() {
       } catch (e) {
         console.error("Error parsing contact info from localStorage", e);
         setContactInfo(CONTACT_INFO);
+        toast({ title: "Load Error", description: "Could not load saved contact info, reset to default.", variant: "destructive" });
       }
     } else {
       setContactInfo(CONTACT_INFO);
@@ -564,6 +576,7 @@ function HeaderNavEditor() {
       } catch (e) {
          console.error("Error parsing nav items from localStorage", e);
         setNavItems(HEADER_NAV_ITEMS_DATA);
+        toast({ title: "Load Error", description: "Could not load saved navigation items, reset to default.", variant: "destructive" });
       }
     } else {
       setNavItems(HEADER_NAV_ITEMS_DATA);
@@ -576,10 +589,6 @@ function HeaderNavEditor() {
     setNavItems(updatedNavItems);
   };
   
-  // Cannot add/remove nav items in this simple editor, only edit existing ones.
-  // To add/remove, one would typically modify constants.ts and redeploy.
-  // Or, a more complex state management and UI would be needed here.
-
   const handleSave = () => {
     localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
     toast({ title: "Success!", description: "Header navigation items saved to local storage." });
@@ -646,6 +655,7 @@ function MessagesManager() {
       } catch (e) {
         console.error("Error parsing messages from localStorage", e);
         setMessages([]);
+        toast({ title: "Load Error", description: "Could not load saved messages, cleared local messages.", variant: "destructive" });
       }
     }
   }, []);
@@ -668,20 +678,20 @@ function MessagesManager() {
     };
     const updatedMessages = [...messages, messageToAdd];
     handleSaveMessages(updatedMessages);
-    setNewMessage({ name: '', email: '', message: '' }); // Reset form
+    setNewMessage({ name: '', email: '', message: '' }); 
     toast({ title: "Message Added", description: "Mock message saved to local storage." });
   };
 
   const handleRemoveMessage = (id: string) => {
     const updatedMessages = messages.filter(msg => msg.id !== id);
     handleSaveMessages(updatedMessages);
-    toast({ title: "Message Removed", variant: "destructive" });
+    toast({ title: "Message Removed", variant: "default" });
   };
   
   const handleClearAllMessages = () => {
     handleSaveMessages([]);
-    setSummary(null); // Clear summary as well
-    toast({ title: "All Messages Cleared", description: "All mock messages have been removed from local storage.", variant: "destructive" });
+    setSummary(null); 
+    toast({ title: "All Messages Cleared", description: "All mock messages have been removed from local storage.", variant: "default" });
   };
 
   const handleSummarize = async () => {
@@ -844,7 +854,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('adminAuthenticated');
-    setSecretKey(''); // Clear the secret key field on logout
+    setSecretKey(''); 
     toast({title: "Logged Out", description: "You have been logged out of the admin panel."});
   }
 
@@ -895,4 +905,4 @@ export default function AdminPage() {
   );
 }
 
-
+    
