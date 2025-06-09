@@ -135,7 +135,7 @@ ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}
     const emailResult = await sendInquiryEmails(inquiryDataForAction);
 
     if (emailResult.success) {
-      toast({ title: 'Inquiry Submitted!', description: 'Thank you for your interest. Atif will get back to you soon.' });
+      toast({ title: 'Inquiry Submitted!', description: "Thank you for your interest. We've received your inquiry and will get back to you soon." });
       setInquiryName('');
       setInquiryEmail('');
       setInquiryProjectIdea('');
@@ -156,12 +156,7 @@ ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}
           const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
           messages.push(failureMessage);
           localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
-           toast({
-            title: "Admin Notification Issue (Logged)",
-            description: "There was an issue sending the notification to the site admin, but your inquiry was received. The issue has been logged.",
-            variant: "default",
-            duration: 7000,
-          });
+           // Removed the additional toast for admin notification issue here
         } catch (localError) {
           console.error('Error saving email failure message to localStorage:', localError);
         }
@@ -361,3 +356,4 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
     </section>
   );
 }
+

@@ -58,7 +58,7 @@ export function ContactSection() {
     if (emailResult.success) {
       toast({
         title: "Message Sent!",
-        description: "Thanks for reaching out. I'll get back to you soon.",
+        description: "Thanks for reaching out. We've received your message and will reply to you soon.",
       });
       setFormData({ name: '', email: '', message: '' }); // Clear form on success
 
@@ -76,12 +76,7 @@ export function ContactSection() {
           const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
           messages.push(failureMessage);
           localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
-          toast({
-            title: "Admin Notification Issue (Logged)",
-            description: "There was an issue sending the notification to the site admin, but your message was received. The issue has been logged.",
-            variant: "default", // Use a less alarming variant or just rely on console/server logs for admin
-            duration: 7000,
-          });
+          // Removed the additional toast for admin notification issue here
         } catch (localError) {
           console.error('Error saving email failure message to localStorage:', localError);
         }
@@ -190,3 +185,4 @@ export function ContactSection() {
     </section>
   );
 }
+
