@@ -1,4 +1,4 @@
-export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer and UI/UX enthusiast with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions.`;
+export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer, UI/UX enthusiast, and Professional Graphics Designer with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions, and is also available for Freelance projects.`;
 
 export interface Project {
   id: string;
@@ -97,7 +97,7 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
 ];
 
 export const KEY_SKILLS: string[] = [
-  "Full-Stack Development", "UI/UX Design", "React", "Next.js", "Node.js", 
+  "Full-Stack Development", "UI/UX Design", "Professional Graphics Designer", "Freelancer", "React", "Next.js", "Node.js", 
   "Python", "TypeScript", "JavaScript", "Tailwind CSS", "ShadCN UI", 
   "Genkit", "Prompt Engineering", "Firebase", "PostgreSQL", "API Integration", 
   "Mobile Development (React Native)", "Agile Methodologies"

@@ -7,7 +7,7 @@ import { ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 
 export function HeroSection() {
-  const roles = ["Full-Stack Developer", "UI/UX Designer", "Tech Innovator", "Problem Solver", "Prompt Engineer"];
+  const roles = ["Full-Stack Developer", "UI/UX Designer", "Professional Graphics Designer", "Freelancer", "Tech Innovator", "Problem Solver", "Prompt Engineer"];
 
   return (
     <section id="hero" className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center text-center bg-gradient-to-br from-background via-secondary/10 to-background">
