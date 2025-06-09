@@ -49,7 +49,7 @@ export function TypingAnimation({
   }, [charIndex, isDeleting, textIndex, texts, typingSpeed, deletingSpeed, pauseDuration]);
 
   return (
-    <span className={cn("inline-block min-h-[1.5em] align-bottom border-r-2 border-primary animate-pulse", className)}>
+    <span className={cn("inline-block border-r-2 border-primary animate-pulse", className)}>
       {currentText}
     </span>
   );

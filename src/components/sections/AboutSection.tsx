@@ -1,8 +1,9 @@
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
-import { ATIF_PORTFOLIO_DESCRIPTION } from '@/data/constants';
+import { ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS } from '@/data/constants';
 import Image from 'next/image';
-import { Award, Briefcase, Users } from 'lucide-react';
+import { Award, Briefcase, Users, Brain, Code } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function AboutSection() {
   const stats = [
@@ -60,6 +61,30 @@ export function AboutSection() {
             </ScrollAnimationWrapper>
           </div>
         </div>
+
+        <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="500ms" id="skills">
+          <div className="mt-16 md:mt-24">
+            <h3 className="text-3xl md:text-4xl font-headline font-bold text-center mb-10">
+              Key <span className="text-primary">Skills</span>
+            </h3>
+            <div className="flex flex-wrap justify-center gap-3 md:gap-4 max-w-3xl mx-auto">
+              {KEY_SKILLS.map((skill) => (
+                <Badge 
+                  key={skill} 
+                  variant="secondary" 
+                  className="px-4 py-2 text-sm md:text-base bg-card border-primary/30 text-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 cursor-default"
+                >
+                  {skill.toLowerCase().includes('ai') || skill.toLowerCase().includes('prompt') ? (
+                    <Brain className="mr-2 h-4 w-4 text-primary/80" />
+                  ) : (
+                    <Code className="mr-2 h-4 w-4 text-primary/80" />
+                  )}
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </ScrollAnimationWrapper>
       </Container>
     </section>
   );

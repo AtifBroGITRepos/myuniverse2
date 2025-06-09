@@ -7,8 +7,10 @@ export function Header() {
   const navItems = [
     { name: 'Home', href: '#hero' },
     { name: 'About', href: '#about' },
+    { name: 'Skills', href: '#skills' },
     { name: 'Projects', href: '#projects' },
-    { name: 'AI Tools', href: '#ai-tools' },
+    { name: 'Testimonials', href: '#testimonials' },
+    { name: 'AI Hub', href: '#ai-tools' },
     { name: 'Contact', href: '#contact' },
   ];
 
@@ -21,9 +23,9 @@ export function Header() {
             Atif's Universe
           </span>
         </Link>
-        <nav className="hidden md:flex items-center space-x-2">
+        <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
           {navItems.map((item) => (
-            <Button key={item.name} variant="link" asChild className="text-foreground hover:text-primary transition-colors">
+            <Button key={item.name} variant="link" asChild className="text-foreground hover:text-primary transition-colors text-sm lg:text-base px-2 lg:px-3">
               <Link href={item.href}>{item.name}</Link>
             </Button>
           ))}

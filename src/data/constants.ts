@@ -1,4 +1,4 @@
-export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer and UI/UX enthusiast with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, always striving for pixel-perfect execution and scalable solutions.`;
+export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer and UI/UX enthusiast with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions.`;
 
 export interface Project {
   id: string;
@@ -41,7 +41,7 @@ export const PROJECTS_DATA: Project[] = [
     longDescription: 'Built an AI-powered content generation tool that assists users in creating marketing copy, blog posts, and social media updates. Integrated with OpenAI API. The front-end was developed with Vue.js and the back-end with Python (Flask). Features included various content templates and tone adjustments.',
     imageUrl: 'https://placehold.co/600x400.png',
     imageHint: 'artificial intelligence',
-    tags: ['Vue.js', 'Python', 'AI', 'OpenAI'],
+    tags: ['Vue.js', 'Python', 'AI', 'OpenAI', 'Prompt Engineering'],
     sourceUrl: '#',
   },
    {
@@ -54,4 +54,51 @@ export const PROJECTS_DATA: Project[] = [
     tags: ['React Native', 'Mobile', 'HealthTech', 'Firebase'],
     liveUrl: '#',
   },
+];
+
+export interface Testimonial {
+  id: string;
+  quote: string;
+  author: string;
+  role: string;
+  company?: string;
+  avatarUrl?: string;
+  avatarHint?: string;
+}
+
+export const TESTIMONIALS_DATA: Testimonial[] = [
+  {
+    id: 'testimonial-1',
+    quote: "Atif transformed our outdated system into a modern, efficient platform. His technical skills and dedication were outstanding, delivering results that significantly improved our workflow.",
+    author: "Jane Doe",
+    role: "CEO",
+    company: "Innovatech Solutions",
+    avatarUrl: "https://placehold.co/100x100.png",
+    avatarHint: "business person"
+  },
+  {
+    id: 'testimonial-2',
+    quote: "The user interface Atif designed was not only intuitive and beautiful but also highly effective. Our customer engagement metrics shot up after the redesign he led.",
+    author: "John Smith",
+    role: "Marketing Director",
+    company: "Connective Digital",
+    avatarUrl: "https://placehold.co/100x100.png",
+    avatarHint: "professional headshot"
+  },
+  {
+    id: 'testimonial-3',
+    quote: "Working with Atif was a breeze. He has a unique ability to understand complex needs and translate them into functional, elegant solutions. He delivered beyond our expectations.",
+    author: "Alice Brown",
+    role: "Project Manager",
+    company: "Synergy Corp",
+    avatarUrl: "https://placehold.co/100x100.png",
+    avatarHint: "smiling individual"
+  }
+];
+
+export const KEY_SKILLS: string[] = [
+  "Full-Stack Development", "UI/UX Design", "React", "Next.js", "Node.js", 
+  "Python", "TypeScript", "JavaScript", "Tailwind CSS", "ShadCN UI", 
+  "Genkit", "Prompt Engineering", "Firebase", "PostgreSQL", "API Integration", 
+  "Mobile Development (React Native)", "Agile Methodologies"
 ];
