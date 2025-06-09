@@ -3,18 +3,11 @@ import Link from 'next/link';
 import { Container } from '@/components/shared/Container';
 import { Button } from '@/components/ui/button';
 import { Rocket } from 'lucide-react';
+import { HEADER_NAV_ITEMS_DATA, type NavItem } from '@/data/constants'; // Import nav items data
 
 export function Header() {
-  const navItems = [
-    { name: 'Home', href: '#hero' },
-    { name: 'About', href: '#about' },
-    { name: 'Skills', href: '#skills' },
-    { name: 'Services', href: '#services' },
-    { name: 'Projects', href: '#projects' },
-    { name: 'Testimonials', href: '#testimonials' },
-    { name: 'AI Hub', href: '#ai-tools' },
-    { name: 'Contact', href: '#contact' },
-  ];
+  // Use the imported nav items data
+  const navItems: NavItem[] = HEADER_NAV_ITEMS_DATA;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -171,5 +171,24 @@ export interface AdminMessage {
   receivedAt: string;
 }
 
+export interface NavItem {
+  name: string;
+  href: string;
+}
+
+export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
+  { name: 'Home', href: '#hero' },
+  { name: 'About', href: '#about' },
+  { name: 'Skills', href: '#skills' },
+  { name: 'Services', href: '#services' },
+  { name: 'Projects', href: '#projects' },
+  { name: 'Testimonials', href: '#testimonials' },
+  { name: 'AI Hub', href: '#ai-tools' },
+  { name: 'Contact', href: '#contact' },
+];
+
+
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
+export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
+export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
 

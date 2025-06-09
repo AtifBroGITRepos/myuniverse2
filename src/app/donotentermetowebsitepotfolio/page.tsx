@@ -13,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from '@/hooks/use-toast';
 import { 
-  ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, LOCALSTORAGE_MESSAGES_KEY,
-  type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage 
+  ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
+  LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY,
+  type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -111,7 +112,7 @@ function ServicesEditor() {
     if (storedServices) {
       setServices(JSON.parse(storedServices));
     } else {
-      setServices(SERVICES_DATA); // Initialize with default if nothing in LS
+      setServices(SERVICES_DATA); 
     }
   }, []);
 
@@ -218,7 +219,7 @@ function ProjectsEditor() {
     if (storedProjects) {
       setProjects(JSON.parse(storedProjects));
     } else {
-      setProjects(PROJECTS_DATA); // Initialize with default if nothing in LS
+      setProjects(PROJECTS_DATA);
     }
   }, []);
 
@@ -332,6 +333,120 @@ function ProjectsEditor() {
   );
 }
 
+function TestimonialsEditor() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(TESTIMONIALS_DATA);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedTestimonials = localStorage.getItem(LOCALSTORAGE_TESTIMONIALS_KEY);
+    if (storedTestimonials) {
+      setTestimonials(JSON.parse(storedTestimonials));
+    } else {
+      setTestimonials(TESTIMONIALS_DATA);
+    }
+  }, []);
+
+  const handleTestimonialChange = (index: number, field: keyof Testimonial, value: string) => {
+    const updatedTestimonials = [...testimonials];
+    updatedTestimonials[index] = { ...updatedTestimonials[index], [field]: value };
+    setTestimonials(updatedTestimonials);
+  };
+
+  const handleAvatarFileChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleTestimonialChange(index, 'avatarUrl', reader.result as string);
+        toast({ title: "Avatar Preview Ready", description: "Image will be saved as Data URI." });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddTestimonial = () => {
+    setTestimonials([...testimonials, {
+      id: `testimonial-${Date.now()}`,
+      quote: '',
+      author: '',
+      role: '',
+      company: '',
+      avatarUrl: 'https://placehold.co/100x100.png',
+      avatarHint: 'person',
+    }]);
+  };
+
+  const handleRemoveTestimonial = (index: number) => {
+    setTestimonials(testimonials.filter((_, i) => i !== index));
+  };
+
+  const handleSave = () => {
+    localStorage.setItem(LOCALSTORAGE_TESTIMONIALS_KEY, JSON.stringify(testimonials));
+    toast({ title: "Success!", description: "Testimonials data saved to local storage." });
+  };
+
+  const handleReset = () => {
+    setTestimonials(TESTIMONIALS_DATA);
+    localStorage.removeItem(LOCALSTORAGE_TESTIMONIALS_KEY);
+    toast({ title: "Reset", description: "Testimonials data reset to default." });
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Testimonials Editor</CardTitle>
+        <CardDescription>Manage client and colleague testimonials. Avatar images are saved as Data URIs.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {testimonials.map((testimonial, index) => (
+          <Card key={testimonial.id} className="p-4 bg-secondary/20 space-y-3">
+            <div>
+              <Label htmlFor={`testimonial-quote-${index}`}>Quote</Label>
+              <Textarea id={`testimonial-quote-${index}`} value={testimonial.quote} onChange={(e) => handleTestimonialChange(index, 'quote', e.target.value)} rows={3} className="bg-input"/>
+            </div>
+            <div>
+              <Label htmlFor={`testimonial-author-${index}`}>Author</Label>
+              <Input id={`testimonial-author-${index}`} value={testimonial.author} onChange={(e) => handleTestimonialChange(index, 'author', e.target.value)} className="bg-input"/>
+            </div>
+            <div>
+              <Label htmlFor={`testimonial-role-${index}`}>Role</Label>
+              <Input id={`testimonial-role-${index}`} value={testimonial.role} onChange={(e) => handleTestimonialChange(index, 'role', e.target.value)} className="bg-input"/>
+            </div>
+            <div>
+              <Label htmlFor={`testimonial-company-${index}`}>Company (Optional)</Label>
+              <Input id={`testimonial-company-${index}`} value={testimonial.company || ''} onChange={(e) => handleTestimonialChange(index, 'company', e.target.value)} className="bg-input"/>
+            </div>
+            <div>
+              <Label htmlFor={`testimonial-avatar-${index}`}>Avatar Image</Label>
+              <Input id={`testimonial-avatar-${index}`} type="file" accept="image/*" onChange={(e) => handleAvatarFileChange(index, e)} className="bg-input"/>
+              {testimonial.avatarUrl && (
+                <div className="mt-2 relative w-24 h-24">
+                  <Image src={testimonial.avatarUrl} alt="Avatar Preview" layout="fill" objectFit="cover" className="rounded-full"/>
+                </div>
+              )}
+            </div>
+            <div>
+              <Label htmlFor={`testimonial-avatarhint-${index}`}>Avatar AI Hint (1-2 words)</Label>
+              <Input id={`testimonial-avatarhint-${index}`} value={testimonial.avatarHint || ""} onChange={(e) => handleTestimonialChange(index, 'avatarHint', e.target.value)} className="bg-input"/>
+            </div>
+            <Button variant="destructive" size="sm" onClick={() => handleRemoveTestimonial(index)} className="mt-3">
+              <Trash2 className="mr-2 h-4 w-4" /> Remove Testimonial
+            </Button>
+          </Card>
+        ))}
+        <Button variant="outline" onClick={handleAddTestimonial} className="w-full">
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Testimonial
+        </Button>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
+        <Button onClick={handleSave}>Save to Local Storage</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
 function ContactEditor() {
   const [contactInfo, setContactInfo] = useState<ContactDetails>(CONTACT_INFO);
   const { toast } = useToast();
@@ -341,7 +456,7 @@ function ContactEditor() {
     if (storedContactInfo) {
       setContactInfo(JSON.parse(storedContactInfo));
     } else {
-      setContactInfo(CONTACT_INFO); // Initialize with default
+      setContactInfo(CONTACT_INFO);
     }
   }, []);
 
@@ -409,6 +524,78 @@ function ContactEditor() {
   );
 }
 
+function HeaderNavEditor() {
+  const [navItems, setNavItems] = useState<NavItem[]>(HEADER_NAV_ITEMS_DATA);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedNavItems = localStorage.getItem(LOCALSTORAGE_HEADER_NAV_KEY);
+    if (storedNavItems) {
+      setNavItems(JSON.parse(storedNavItems));
+    } else {
+      setNavItems(HEADER_NAV_ITEMS_DATA);
+    }
+  }, []);
+
+  const handleNavItemChange = (index: number, field: keyof NavItem, value: string) => {
+    const updatedNavItems = [...navItems];
+    updatedNavItems[index] = { ...updatedNavItems[index], [field]: value };
+    setNavItems(updatedNavItems);
+  };
+
+  const handleSave = () => {
+    localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
+    toast({ title: "Success!", description: "Header navigation items saved to local storage." });
+  };
+
+  const handleReset = () => {
+    setNavItems(HEADER_NAV_ITEMS_DATA);
+    localStorage.removeItem(LOCALSTORAGE_HEADER_NAV_KEY);
+    toast({ title: "Reset", description: "Header navigation items reset to default." });
+  };
+  
+  // Cannot add/remove nav items in this simple editor, only edit existing ones.
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Header Navigation Editor</CardTitle>
+        <CardDescription>Edit the text and links for the main site navigation. Changes are saved locally.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {navItems.map((item, index) => (
+          <Card key={`navitem-${index}`} className="p-4 bg-secondary/20 space-y-3">
+            <div>
+              <Label htmlFor={`navitem-name-${index}`}>Item Name</Label>
+              <Input 
+                id={`navitem-name-${index}`} 
+                value={item.name} 
+                onChange={(e) => handleNavItemChange(index, 'name', e.target.value)} 
+                className="bg-input"
+              />
+            </div>
+            <div>
+              <Label htmlFor={`navitem-href-${index}`}>Link (href)</Label>
+              <Input 
+                id={`navitem-href-${index}`} 
+                value={item.href} 
+                onChange={(e) => handleNavItemChange(index, 'href', e.target.value)} 
+                className="bg-input"
+                placeholder="e.g., #about or /blog"
+              />
+            </div>
+          </Card>
+        ))}
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
+        <Button onClick={handleSave}>Save to Local Storage</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
 function MessagesManager() {
   const [messages, setMessages] = useState<AdminMessage[]>([]);
   const [newMessage, setNewMessage] = useState({ name: '', email: '', message: '' });
@@ -453,7 +640,7 @@ function MessagesManager() {
   
   const handleClearAllMessages = () => {
     handleSaveMessages([]);
-    setSummary(null); // Clear summary as well
+    setSummary(null);
     toast({ title: "All Messages Cleared" });
   };
 
@@ -554,12 +741,14 @@ function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6 h-auto flex-wrap">
-          <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About Me</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 mb-6 h-auto flex-wrap">
+          <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
-          <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact Info</TabsTrigger>
-          <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages & AI</TabsTrigger>
+          <TabsTrigger value="testimonials" className="py-2"><Star className="mr-2 h-5 w-5"/>Testimonials</TabsTrigger>
+          <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact</TabsTrigger>
+          <TabsTrigger value="navigation" className="py-2"><MenuSquareIcon className="mr-2 h-5 w-5"/>Navigation</TabsTrigger>
+          <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           <AboutEditor />
@@ -570,8 +759,14 @@ function AdminDashboard() {
         <TabsContent value="projects">
           <ProjectsEditor />
         </TabsContent>
+         <TabsContent value="testimonials">
+          <TestimonialsEditor />
+        </TabsContent>
         <TabsContent value="contact">
           <ContactEditor />
+        </TabsContent>
+        <TabsContent value="navigation">
+          <HeaderNavEditor />
         </TabsContent>
         <TabsContent value="messages">
           <MessagesManager />
@@ -587,7 +782,6 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
 
-  // Check auth status on mount, useful for page reloads if already authenticated
   useEffect(() => {
      if(sessionStorage.getItem('adminAuthenticated') === 'true') {
        setIsAuthenticated(true);
@@ -597,7 +791,7 @@ export default function AdminPage() {
   const handleLogin = () => {
     if (secretKey === ADMIN_SECRET_KEY) {
       setIsAuthenticated(true);
-      sessionStorage.setItem('adminAuthenticated', 'true'); // Persist auth state for session
+      sessionStorage.setItem('adminAuthenticated', 'true');
       toast({ title: "Access Granted", description: "Welcome to the Admin Panel!", variant: "default" });
     } else {
       toast({ title: "Access Denied", description: "Incorrect secret key.", variant: "destructive" });
