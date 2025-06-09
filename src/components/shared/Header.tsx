@@ -1,13 +1,16 @@
 
+"use client"; // Make it a client component to use context
+
 import Link from 'next/link';
 import { Container } from '@/components/shared/Container';
 import { Button } from '@/components/ui/button';
 import { Rocket } from 'lucide-react';
-import { HEADER_NAV_ITEMS_DATA, type NavItem } from '@/data/constants'; // Import nav items data
+import { HEADER_NAV_ITEMS_DATA, type NavItem } from '@/data/constants';
+import { useSiteInfo } from '@/components/shared/SiteInfoProvider'; // Import the context hook
 
 export function Header() {
-  // Use the imported nav items data
   const navItems: NavItem[] = HEADER_NAV_ITEMS_DATA;
+  const { siteInfo } = useSiteInfo(); // Get siteInfo from context
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -15,7 +18,7 @@ export function Header() {
         <Link href="/" className="flex items-center space-x-2">
           <Rocket className="h-7 w-7 text-primary" />
           <span className="font-headline text-2xl font-bold text-foreground">
-            Atif's Universe
+            {siteInfo.websiteName} {/* Use dynamic website name */}
           </span>
         </Link>
         <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">

@@ -17,6 +17,7 @@ import {
   ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
+  DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
@@ -31,7 +32,7 @@ import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -1412,6 +1413,129 @@ function EmailTemplatesEditor() {
   );
 }
 
+function SiteSettingsEditor() {
+  const [siteInfo, setSiteInfo] = useState<SiteInfo>(DEFAULT_SITE_INFO);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedSiteInfo = localStorage.getItem(LOCALSTORAGE_SITE_INFO_KEY);
+    if (storedSiteInfo) {
+      try {
+        setSiteInfo(JSON.parse(storedSiteInfo));
+      } catch (e) {
+        console.error("Error parsing site info from localStorage", e);
+        setSiteInfo(DEFAULT_SITE_INFO);
+        toast({ title: "Load Error", description: "Could not load site settings, reset to default.", variant: "destructive" });
+      }
+    } else {
+      setSiteInfo(DEFAULT_SITE_INFO);
+    }
+  }, [toast]);
+
+  const handleChange = (field: keyof SiteInfo, value: string) => {
+    setSiteInfo(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    localStorage.setItem(LOCALSTORAGE_SITE_INFO_KEY, JSON.stringify(siteInfo));
+    toast({ title: "Success!", description: "Site settings saved to local storage. Changes will apply on next page load/refresh." });
+  };
+
+  const handleReset = () => {
+    setSiteInfo(DEFAULT_SITE_INFO);
+    localStorage.removeItem(LOCALSTORAGE_SITE_INFO_KEY);
+    toast({ title: "Reset Successful", description: "Site settings reset to default." });
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Site Information & SEO Settings</CardTitle>
+        <CardDescription>
+          Manage general website information and default SEO settings. These settings are saved locally and applied dynamically.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="websiteName">Website Name</Label>
+          <Input
+            id="websiteName"
+            value={siteInfo.websiteName}
+            onChange={e => handleChange('websiteName', e.target.value)}
+            className="bg-input"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            This name appears in the site header. To change the name used in automated emails, you need to manually edit the `siteName` variable in `src/app/actions/send-inquiry-email.ts` and redeploy.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="defaultSeoTitle">Default SEO Title</Label>
+          <Input
+            id="defaultSeoTitle"
+            value={siteInfo.defaultSeoTitle}
+            onChange={e => handleChange('defaultSeoTitle', e.target.value)}
+            className="bg-input"
+            placeholder="e.g., My Awesome Portfolio"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            The default title tag for your website pages.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="defaultSeoDescription">Default SEO Description</Label>
+          <Textarea
+            id="defaultSeoDescription"
+            value={siteInfo.defaultSeoDescription}
+            onChange={e => handleChange('defaultSeoDescription', e.target.value)}
+            rows={3}
+            className="bg-input"
+            placeholder="e.g., Discover the projects and skills of..."
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            The default meta description for search engines and social sharing.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="ogImageUrl">Default Open Graph Image URL</Label>
+          <Input
+            id="ogImageUrl"
+            value={siteInfo.ogImageUrl || ''}
+            onChange={e => handleChange('ogImageUrl', e.target.value)}
+            className="bg-input"
+            placeholder="e.g., https://yourdomain.com/og-image.png"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            URL for the default image used when sharing links on social media (e.g., 1200x630px).
+          </p>
+        </div>
+         <div>
+          <Label className="text-foreground">Favicon Management</Label>
+           <Alert variant="default" className="bg-secondary/30 border-secondary/50 mt-1">
+              <InfoCircledIcon className="h-5 w-5 text-muted-foreground" /> {/* Placeholder, replace with actual icon if available or remove */}
+              <AlertTitle className="text-sm font-medium text-foreground">Favicon Instructions</AlertTitle>
+              <AlertDescription className="text-xs text-muted-foreground">
+                Favicons (e.g., <code className="text-xs bg-muted p-0.5 rounded">favicon.ico</code>, <code className="text-xs bg-muted p-0.5 rounded">apple-touch-icon.png</code>, <code className="text-xs bg-muted p-0.5 rounded">icon.svg</code>) should be manually placed in the <code className="text-xs bg-muted p-0.5 rounded">public/</code> directory of your project.
+                If you change their names or add new types, you may need to update the corresponding <code className="text-xs bg-muted p-0.5 rounded">&lt;link&gt;</code> tags in the <code className="text-xs bg-muted p-0.5 rounded">&lt;head&gt;</code> section of your <code className="text-xs bg-muted p-0.5 rounded">src/app/layout.tsx</code> file.
+              </AlertDescription>
+            </Alert>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleReset}>Reset to Defaults</Button>
+        <Button onClick={handleSave}>Save Site Settings</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+// Placeholder for InfoCircledIcon if not available in lucide-react
+// You can replace this with a suitable icon or remove it.
+const InfoCircledIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 15 15" fill="currentColor" {...props}>
+    <path fillRule="evenodd" clipRule="evenodd" d="M7.5 11C7.77614 11 8 10.7761 8 10.5C8 10.2239 7.77614 10 7.5 10C7.22386 10 7 10.2239 7 10.5C7 10.7761 7.22386 11 7.5 11ZM7.07189 4.5C7.07189 4.22386 7.29575 4 7.57189 4C7.84804 4 8.07189 4.22386 8.07189 4.5V8C8.07189 8.27614 7.84804 8.5 7.57189 8.5C7.29575 8.5 7.07189 8.27614 7.07189 8V4.5ZM7.5 0.5C3.63401 0.5 0.5 3.63401 0.5 7.5C0.5 11.366 3.63401 14.5 7.5 14.5C11.366 14.5 14.5 11.366 14.5 7.5C14.5 3.63401 11.366 0.5 7.5 0.5Z" />
+  </svg>
+);
+
 
 function AdminDashboard() {
   return (
@@ -1422,18 +1546,19 @@ function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-11 mb-6 h-auto flex-wrap justify-start">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 mb-6 h-auto flex-wrap justify-start">
           <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
           <TabsTrigger value="testimonials" className="py-2"><Star className="mr-2 h-5 w-5"/>Testimonials</TabsTrigger>
-          <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact</TabsTrigger>
+          <TabsTrigger value="contact" className="py-2"><Mail className="mr-2 h-5 w-5"/>Contact Info</TabsTrigger>
           <TabsTrigger value="navigation" className="py-2"><MenuSquareIcon className="mr-2 h-5 w-5"/>Navigation</TabsTrigger>
           <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages</TabsTrigger>
           <TabsTrigger value="ai_content" className="py-2"><Lightbulb className="mr-2 h-5 w-5"/>AI Content</TabsTrigger>
           <TabsTrigger value="smtp_config" className="py-2"><Settings className="mr-2 h-5 w-5"/>SMTP Config</TabsTrigger>
           <TabsTrigger value="mail_sender" className="py-2"><MailPlus className="mr-2 h-5 w-5"/>Mail Sender</TabsTrigger>
           <TabsTrigger value="email_templates" className="py-2"><LayoutTemplate className="mr-2 h-5 w-5"/>Email Templates</TabsTrigger>
+          <TabsTrigger value="site_settings" className="py-2"><Globe className="mr-2 h-5 w-5"/>Site Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           <AboutEditor />
@@ -1467,6 +1592,9 @@ function AdminDashboard() {
         </TabsContent>
         <TabsContent value="email_templates">
           <EmailTemplatesEditor />
+        </TabsContent>
+         <TabsContent value="site_settings">
+          <SiteSettingsEditor />
         </TabsContent>
       </Tabs>
     </div>
@@ -1550,3 +1678,4 @@ export default function AdminPage() {
   );
 }
 
+```

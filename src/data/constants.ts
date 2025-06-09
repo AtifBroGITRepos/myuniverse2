@@ -192,6 +192,23 @@ export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
 export const LOCALSTORAGE_EMAIL_TEMPLATES_KEY = "admin_email_templates";
+export const LOCALSTORAGE_SITE_INFO_KEY = "admin_site_info";
+
+
+export interface SiteInfo {
+  websiteName: string;
+  defaultSeoTitle: string;
+  defaultSeoDescription: string;
+  ogImageUrl?: string; // Optional Open Graph image URL
+}
+
+export const DEFAULT_SITE_INFO: SiteInfo = {
+  websiteName: "Atif's Universe",
+  defaultSeoTitle: "Atif's Universe - Portfolio",
+  defaultSeoDescription: "Portfolio of Atif - Full-Stack Developer, UI/UX Enthusiast, and Graphics Designer.",
+  ogImageUrl: "https://placehold.co/1200x630.png", // Default OG image
+};
+
 
 export interface EmailTemplates {
   userConfirmationGeneralHTML: string;
@@ -327,4 +344,3 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
-
