@@ -2,8 +2,7 @@
 'use server';
 
 import { sendEmail } from '@/lib/emailService';
-// type AdminMessage is not used here, but might be used if saving to a DB in the future.
-// import type { AdminMessage } from '@/data/constants';
+import type { AdminMessage } from '@/data/constants'; // Keep this for potential future direct DB save
 
 const adminEmail = process.env.ADMIN_EMAIL;
 const siteName = "Atif's Universe";
@@ -18,10 +17,20 @@ interface InquiryData {
   aiGeneratedIdeas?: string | null;
 }
 
-export async function sendInquiryEmails(data: InquiryData): Promise<{ success: boolean; error?: string }> {
+interface SendInquiryEmailsResult {
+  success: boolean;
+  error?: string; // For critical errors shown to user
+  adminEmailFailed?: boolean;
+  adminEmailError?: string;
+  originalInquiryData?: InquiryData; // To reconstruct message if admin email fails
+}
+
+export async function sendInquiryEmails(data: InquiryData): Promise<SendInquiryEmailsResult> {
   if (!adminEmail) {
-    console.error('ADMIN_EMAIL environment variable is not set.');
-    return { success: false, error: 'Server configuration error: Admin email not set.' };
+    console.error('CRITICAL: ADMIN_EMAIL environment variable is not set. Cannot send admin notification.');
+    // This is a configuration error that should ideally be caught, but for client, let user email proceed if possible.
+    // However, if admin email is critical, this might be a point to return actual failure.
+    // For now, let's allow user confirmation to proceed if their email is valid.
   }
 
   // 1. Email to User (Confirmation)
@@ -78,10 +87,17 @@ The ${siteName} Team
 
   if (!userEmailResult.success) {
     console.error('Failed to send confirmation email to user:', userEmailResult.error);
-    // Log error but still attempt to send admin email
+    // Log error but still attempt to send admin email and return "success" for the client submission part
   }
 
   // 2. Email to Admin (Notification)
+  // Only proceed if adminEmail is configured
+  if (!adminEmail) {
+    console.error("Admin email not configured. Skipping admin notification.");
+    // Return success for client, but indicate admin email was not even attempted (implicitly failed due to config)
+    return { success: true, adminEmailFailed: true, adminEmailError: "Admin email not configured on server.", originalInquiryData: data };
+  }
+
   const adminSubject = `New ${data.type}: ${data.name} (${data.projectTitle || 'General Inquiry'}) - ${siteName}`;
   let adminContentHtml = '';
   let adminContentText = '';
@@ -144,13 +160,10 @@ Please follow up with them at your earliest convenience.
 
   if (!adminEmailResult.success) {
     console.error('Failed to send notification email to admin:', adminEmailResult.error);
-    // If user email succeeded but admin failed, still return success from user's perspective
-    // but ensure error is logged for admin.
-    return { success: userEmailResult.success, error: 'Failed to send admin notification email. User confirmation may have succeeded.' };
+    // Return success for client, but flag that admin email failed.
+    return { success: true, adminEmailFailed: true, adminEmailError: typeof adminEmailResult.error === 'string' ? adminEmailResult.error : JSON.stringify(adminEmailResult.error), originalInquiryData: data };
   }
 
-  // Overall success if both (or at least user confirmation if admin email is the only one failing) emails attempt was fine.
-  // If user email failed, its error is already logged, we'd prioritize that.
-  return { success: userEmailResult.success || adminEmailResult.success };
+  // If we reach here, both user (attempted) and admin emails (attempted and succeeded if configured) are processed.
+  return { success: true };
 }
-

@@ -31,8 +31,8 @@ export function ContactSection() {
     }
     setIsSubmitting(true);
 
-    // Save to localStorage (for admin panel)
-    const newMessageForAdminPanel: AdminMessage = {
+    // Save to localStorage (for admin panel message viewing)
+    const originalMessageForAdminPanel: AdminMessage = {
       id: `contact-${Date.now()}`,
       name: formData.name,
       email: formData.email,
@@ -42,7 +42,7 @@ export function ContactSection() {
     try {
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
-      messages.push(newMessageForAdminPanel);
+      messages.push(originalMessageForAdminPanel);
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving contact message to localStorage:', error);
@@ -60,8 +60,34 @@ export function ContactSection() {
         title: "Message Sent!",
         description: "Thanks for reaching out. I'll get back to you soon.",
       });
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({ name: '', email: '', message: '' }); // Clear form on success
+
+      if (emailResult.adminEmailFailed) {
+        console.warn("Admin email failed to send. Details:", emailResult.adminEmailError);
+        const failureMessage: AdminMessage = {
+          id: `email-fail-${Date.now()}`,
+          name: "SYSTEM ALERT - Email Failure",
+          email: "N/A",
+          message: `Failed to send admin notification for an inquiry.\nType: General Contact\nFrom: ${emailResult.originalInquiryData?.name} (${emailResult.originalInquiryData?.email})\nOriginal Message: ${emailResult.originalInquiryData?.message}\nError: ${emailResult.adminEmailError}`,
+          receivedAt: new Date().toISOString(),
+        };
+        try {
+          const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
+          const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
+          messages.push(failureMessage);
+          localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
+          toast({
+            title: "Admin Notification Issue (Logged)",
+            description: "There was an issue sending the notification to the site admin, but your message was received. The issue has been logged.",
+            variant: "default", // Use a less alarming variant or just rely on console/server logs for admin
+            duration: 7000,
+          });
+        } catch (localError) {
+          console.error('Error saving email failure message to localStorage:', localError);
+        }
+      }
     } else {
+      // This case should now be rare, mostly for critical unrecoverable errors like sendInquiryEmails itself throwing or SMTP completely misconfigured before even trying.
       toast({
         title: "Submission Error",
         description: emailResult.error || "Could not send your message. Please try again later.",

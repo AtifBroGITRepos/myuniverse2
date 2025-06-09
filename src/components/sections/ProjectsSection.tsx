@@ -96,40 +96,43 @@ function ProjectCard({ project }: ProjectCardProps) {
     }
     setIsSubmittingServiceInquiry(true);
 
-    const combinedMessageForAdmin = `
-      Service Inquiry regarding project: "${project.title}"
-      Client's Project Idea/Requirements:
-      ${inquiryProjectIdea}
-      ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}` : ''}
+    const inquiryDataForAction = {
+      name: inquiryName,
+      email: inquiryEmail,
+      message: `Service Inquiry for project: "${project.title}"`, // Base message
+      type: 'Project Service Inquiry' as const,
+      projectTitle: project.title,
+      clientProjectIdea: inquiryProjectIdea,
+      aiGeneratedIdeas: aiGeneratedIdeas,
+    };
+    
+    // Save to localStorage (for admin panel message viewing)
+    const combinedMessageForAdminPanel = `
+Service Inquiry regarding project: "${project.title}"
+Client's Project Idea/Requirements:
+${inquiryProjectIdea}
+${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}` : ''}
     `.trim();
 
-    const newMessageForAdminPanel: AdminMessage = {
+    const originalMessageForAdminPanel: AdminMessage = {
       id: `inquiry-${Date.now()}`,
       name: inquiryName,
       email: inquiryEmail,
-      message: combinedMessageForAdmin,
+      message: combinedMessageForAdminPanel,
       receivedAt: new Date().toISOString(),
     };
 
     try {
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
-      messages.push(newMessageForAdminPanel);
+      messages.push(originalMessageForAdminPanel);
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving inquiry to localStorage:', error);
       // Non-critical, proceed with email sending
     }
 
-    const emailResult = await sendInquiryEmails({
-      name: inquiryName,
-      email: inquiryEmail,
-      message: combinedMessageForAdmin, // This content is for the admin
-      type: 'Project Service Inquiry',
-      projectTitle: project.title,
-      clientProjectIdea: inquiryProjectIdea,
-      aiGeneratedIdeas: aiGeneratedIdeas,
-    });
+    const emailResult = await sendInquiryEmails(inquiryDataForAction);
 
     if (emailResult.success) {
       toast({ title: 'Inquiry Submitted!', description: 'Thank you for your interest. Atif will get back to you soon.' });
@@ -137,7 +140,32 @@ function ProjectCard({ project }: ProjectCardProps) {
       setInquiryEmail('');
       setInquiryProjectIdea('');
       setAiGeneratedIdeas(null);
-      setIsServiceModalOpen(false);
+      setIsServiceModalOpen(false); // Close modal on success
+
+      if (emailResult.adminEmailFailed) {
+        console.warn("Admin email failed to send for service inquiry. Details:", emailResult.adminEmailError);
+        const failureMessage: AdminMessage = {
+          id: `email-fail-${Date.now()}`,
+          name: "SYSTEM ALERT - Email Failure",
+          email: "N/A",
+          message: `Failed to send admin notification for an inquiry.\nType: Project Service Inquiry\nProject: ${emailResult.originalInquiryData?.projectTitle}\nFrom: ${emailResult.originalInquiryData?.name} (${emailResult.originalInquiryData?.email})\nClient Idea: ${emailResult.originalInquiryData?.clientProjectIdea}\nAI Ideas: ${emailResult.originalInquiryData?.aiGeneratedIdeas || 'N/A'}\nError: ${emailResult.adminEmailError}`,
+          receivedAt: new Date().toISOString(),
+        };
+        try {
+          const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
+          const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
+          messages.push(failureMessage);
+          localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
+           toast({
+            title: "Admin Notification Issue (Logged)",
+            description: "There was an issue sending the notification to the site admin, but your inquiry was received. The issue has been logged.",
+            variant: "default",
+            duration: 7000,
+          });
+        } catch (localError) {
+          console.error('Error saving email failure message to localStorage:', localError);
+        }
+      }
     } else {
       toast({ title: 'Submission Error', description: emailResult.error || 'Could not send your inquiry. Please try again.', variant: 'destructive' });
     }
