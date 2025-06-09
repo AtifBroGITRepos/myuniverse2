@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Container } from '@/components/shared/Container';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ export function Header() {
     { name: 'Home', href: '#hero' },
     { name: 'About', href: '#about' },
     { name: 'Skills', href: '#skills' },
+    { name: 'Services', href: '#services' },
     { name: 'Projects', href: '#projects' },
     { name: 'Testimonials', href: '#testimonials' },
     { name: 'AI Hub', href: '#ai-tools' },

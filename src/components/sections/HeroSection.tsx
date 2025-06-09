@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Container } from '@/components/shared/Container';
@@ -7,7 +8,16 @@ import { ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 
 export function HeroSection() {
-  const roles = ["Full-Stack Developer", "UI/UX Designer", "Professional Graphics Designer", "Freelancer", "Tech Innovator", "Problem Solver", "Prompt Engineer"];
+  const roles = [
+    "Full-Stack Developer", 
+    "UI/UX Designer", 
+    "Professional Graphics Designer", 
+    "Creative Thinker", 
+    "Freelancer", 
+    "Tech Innovator", 
+    "Problem Solver", 
+    "Prompt Engineer"
+  ];
 
   return (
     <section id="hero" className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center text-center bg-gradient-to-br from-background via-secondary/10 to-background">
@@ -43,6 +53,10 @@ export function HeroSection() {
         .bg-grid-pattern {
           background-image: linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(to right, hsl(var(--primary)) 1px, hsl(var(--background)) 1px);
           background-size: 2rem 2rem;
+        }
+        /* Ensure proper baseline alignment for typing animation */
+        .flex.items-baseline .inline-block { 
+          vertical-align: baseline;
         }
       `}</style>
     </section>
