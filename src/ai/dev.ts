@@ -12,3 +12,4 @@ import '@/ai/flows/generate-service-item-flow.ts';
 import '@/ai/flows/generate-project-highlight-flow.ts';
 import '@/ai/flows/suggest-section-structure-flow.ts';
 import '@/ai/flows/generate-email-content-flow.ts';
+import '@/ai/flows/summarize-single-message-flow.ts'; // Added new flow

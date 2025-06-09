@@ -21,15 +21,17 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
+import { summarizeSingleMessage, type SummarizeSingleMessageInput } from '@/ai/flows/summarize-single-message-flow'; // New import
 import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generate-hero-text-flow';
 import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
 import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
 import { suggestSectionStructure, type SuggestSectionStructureInput } from '@/ai/flows/suggest-section-structure-flow';
 import { generateEmailContent, type GenerateEmailContentInput } from '@/ai/flows/generate-email-content-flow';
 import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -653,15 +655,21 @@ function HeaderNavEditor() {
 function MessagesManager() {
   const [messages, setMessages] = useState<AdminMessage[]>([]);
   const [newMessage, setNewMessage] = useState({ name: '', email: '', message: '' });
-  const [summary, setSummary] = useState<string | null>(null);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [overallSummary, setOverallSummary] = useState<string | null>(null);
+  const [isLoadingOverallSummary, setIsLoadingOverallSummary] = useState(false);
   const { toast } = useToast();
+
+  const [isLoadingIndividualSummary, setIsLoadingIndividualSummary] = useState<string | null>(null); // Store message ID
+  const [individualSummaries, setIndividualSummaries] = useState<Record<string, string>>({}); // msgId: summary
 
   useEffect(() => {
     const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
     if (storedMessages) {
       try {
-        setMessages(JSON.parse(storedMessages));
+        const parsedMessages = JSON.parse(storedMessages);
+        // Ensure messages are sorted by receivedAt descending (newest first)
+        parsedMessages.sort((a: AdminMessage, b: AdminMessage) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
+        setMessages(parsedMessages);
       } catch (e) {
         console.error("Error parsing messages from localStorage", e);
         setMessages([]);
@@ -671,6 +679,8 @@ function MessagesManager() {
   }, [toast]);
 
   const handleSaveMessages = (updatedMessages: AdminMessage[]) => {
+    // Ensure messages are sorted by receivedAt descending before saving
+    updatedMessages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
     localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(updatedMessages));
     setMessages(updatedMessages);
   };
@@ -686,7 +696,7 @@ function MessagesManager() {
       id: `msg-${Date.now()}`,
       receivedAt: new Date().toISOString(),
     };
-    const updatedMessages = [...messages, messageToAdd];
+    const updatedMessages = [messageToAdd, ...messages]; // Add to the beginning
     handleSaveMessages(updatedMessages);
     setNewMessage({ name: '', email: '', message: '' }); 
     toast({ title: "Message Added", description: "Mock message saved to local storage." });
@@ -695,45 +705,79 @@ function MessagesManager() {
   const handleRemoveMessage = (id: string) => {
     const updatedMessages = messages.filter(msg => msg.id !== id);
     handleSaveMessages(updatedMessages);
+    setIndividualSummaries(prev => {
+      const newSummaries = {...prev};
+      delete newSummaries[id];
+      return newSummaries;
+    });
     toast({ title: "Message Removed", variant: "default" });
   };
   
   const handleClearAllMessages = () => {
     handleSaveMessages([]);
-    setSummary(null); 
+    setOverallSummary(null); 
+    setIndividualSummaries({});
     toast({ title: "All Messages Cleared", description: "All mock messages have been removed from local storage.", variant: "default" });
   };
 
-  const handleSummarize = async () => {
+  const handleSummarizeAll = async () => {
     if (messages.length === 0) {
       toast({ title: "No Messages", description: "Add some messages before summarizing.", variant: "default" });
       return;
     }
-    setIsLoadingSummary(true);
-    setSummary(null);
+    setIsLoadingOverallSummary(true);
+    setOverallSummary(null);
     try {
-      const input: SummarizeMessagesInput = { messages };
+      const input: SummarizeMessagesInput = { messages }; // Pass sorted messages
       const result = await summarizeMessages(input);
-      setSummary(result.summary);
-      toast({ title: "AI Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
+      setOverallSummary(result.summary);
+      toast({ title: "AI Overall Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
     } catch (error: any) {
-      console.error("Error summarizing messages:", error);
-      let errorMessage = "Could not generate summary.";
+      console.error("Error summarizing all messages:", error);
+      let errorMessage = "Could not generate overall summary.";
       if (error && typeof error.message === 'string') {
           errorMessage = error.message;
       }
-      setSummary(`Error: ${errorMessage}`);
+      setOverallSummary(`Error: ${errorMessage}`);
       toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
     } finally {
-      setIsLoadingSummary(false);
+      setIsLoadingOverallSummary(false);
     }
   };
+
+  const handleSummarizeSingle = async (message: AdminMessage) => {
+    if (!message.message.trim()) {
+      toast({ title: "No Content", description: "This message has no content to summarize.", variant: "default" });
+      return;
+    }
+    setIsLoadingIndividualSummary(message.id);
+    try {
+      const input: SummarizeSingleMessageInput = {
+        messageContent: message.message,
+        senderName: message.name,
+      };
+      const result = await summarizeSingleMessage(input);
+      setIndividualSummaries(prev => ({ ...prev, [message.id]: result.summary }));
+      toast({ title: "AI Quick Summary Generated!", description: `Summary for message from ${message.name} created.`, variant: "default" });
+    } catch (error: any) {
+      console.error(`Error summarizing message ${message.id}:`, error);
+      let errorMessage = "Could not generate quick summary for this message.";
+       if (error && typeof error.message === 'string') {
+          errorMessage = error.message;
+      }
+      setIndividualSummaries(prev => ({ ...prev, [message.id]: `Error: ${errorMessage}` }));
+      toast({ title: "AI Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoadingIndividualSummary(null);
+    }
+  };
+
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Messages & AI Summary</CardTitle>
-        <CardDescription>Manage mock user messages and use AI to summarize them. Data is saved locally.</CardDescription>
+        <CardTitle>Messages & AI Summaries</CardTitle>
+        <CardDescription>Manage mock user messages. Use AI to summarize all messages or individual ones. Data is saved locally.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleAddMessage} className="p-4 border rounded-lg space-y-3 bg-secondary/20">
@@ -754,44 +798,71 @@ function MessagesManager() {
         </form>
 
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
             <h4 className="text-lg font-medium text-foreground">Current Messages ({messages.length})</h4>
-            {messages.length > 0 && (
-              <Button variant="outline" onClick={handleClearAllMessages} size="sm">
-                <Trash2 className="mr-2 h-4 w-4"/> Clear All Messages
-              </Button>
-            )}
-          </div>
-          {messages.length === 0 && <p className="text-muted-foreground">No messages yet. Add some using the form above.</p>}
-          <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
-            {messages.map(msg => (
-              <Card key={msg.id} className="p-3 bg-card">
-                <p className="text-sm text-muted-foreground"><strong>From:</strong> {msg.name} ({msg.email})</p>
-                <p className="text-sm text-muted-foreground"><strong>Received:</strong> {new Date(msg.receivedAt).toLocaleString()}</p>
-                <p className="mt-1 text-foreground whitespace-pre-wrap">{msg.message}</p>
-                <Button variant="destructive" size="xs" onClick={() => handleRemoveMessage(msg.id)} className="mt-2">
-                  <Trash2 className="mr-1 h-3 w-3"/> Remove
+            <div className="flex gap-2 flex-wrap">
+              {messages.length > 0 && (
+                 <Button onClick={handleSummarizeAll} disabled={isLoadingOverallSummary || messages.length === 0} size="sm">
+                    <BotMessageSquare className="mr-2 h-4 w-4" />
+                    {isLoadingOverallSummary ? "Summarizing All..." : "Summarize All with AI"}
                 </Button>
+              )}
+              {messages.length > 0 && (
+                <Button variant="outline" onClick={handleClearAllMessages} size="sm">
+                  <Trash2 className="mr-2 h-4 w-4"/> Clear All Messages
+                </Button>
+              )}
+            </div>
+          </div>
+          {overallSummary && (
+            <Alert className="bg-primary/10 border-primary/50">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <AlertTitle className="text-primary">AI Overall Summary:</AlertTitle>
+                <AlertDescription className="text-foreground whitespace-pre-wrap text-sm">{overallSummary}</AlertDescription>
+            </Alert>
+          )}
+
+          {messages.length === 0 && <p className="text-muted-foreground">No messages yet. Add some using the form above.</p>}
+          <div className="max-h-[600px] overflow-y-auto space-y-3 pr-2">
+            {messages.map(msg => (
+              <Card key={msg.id} className="p-3 bg-card shadow-md">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="text-sm text-muted-foreground"><strong>From:</strong> {msg.name} ({msg.email})</p>
+                        <p className="text-xs text-muted-foreground"><strong>Received:</strong> {new Date(msg.receivedAt).toLocaleString()}</p>
+                    </div>
+                    <Button variant="ghost" size="xs" onClick={() => handleRemoveMessage(msg.id)} className="text-destructive hover:text-destructive/80 p-1">
+                        <Trash2 className="h-4 w-4"/>
+                    </Button>
+                </div>
+                <p className="mt-2 text-foreground whitespace-pre-wrap text-sm">{msg.message}</p>
+                
+                <Button 
+                    variant="outline" 
+                    size="xs" 
+                    onClick={() => handleSummarizeSingle(msg)} 
+                    disabled={isLoadingIndividualSummary === msg.id}
+                    className="mt-3 text-xs"
+                >
+                    {isLoadingIndividualSummary === msg.id ? <RefreshCw className="mr-1 h-3 w-3 animate-spin"/> : <Sparkles className="mr-1 h-3 w-3"/>}
+                    {isLoadingIndividualSummary === msg.id ? "Summarizing..." : "AI Quick Summary"}
+                </Button>
+
+                {individualSummaries[msg.id] && (
+                    <Card className="mt-2 p-3 bg-secondary/30 border-secondary/50">
+                        <CardTitle className="text-xs font-medium text-primary mb-1 flex items-center">
+                            <Sparkles className="h-3 w-3 mr-1.5"/> AI Quick Summary
+                        </CardTitle>
+                        <CardDescription className="text-xs text-foreground whitespace-pre-wrap">
+                            {individualSummaries[msg.id]}
+                        </CardDescription>
+                    </Card>
+                )}
               </Card>
             ))}
           </div>
         </div>
-       
-        <div className="space-y-2">
-            <Button onClick={handleSummarize} disabled={isLoadingSummary || messages.length === 0} className="w-full">
-                <BotMessageSquare className="mr-2 h-5 w-5" />
-                {isLoadingSummary ? "Summarizing with AI..." : "Summarize Messages with AI"}
-            </Button>
-            {summary && (
-            <Card className="p-4 bg-primary/10 border-primary/50">
-                <CardTitle className="text-md text-primary mb-2">AI Summary:</CardTitle>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{summary}</p>
-            </Card>
-            )}
-        </div>
       </CardContent>
-       <CardFooter className="flex justify-end gap-2">
-      </CardFooter>
     </Card>
   );
 }
@@ -1487,4 +1558,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
