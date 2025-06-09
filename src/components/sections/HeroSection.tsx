@@ -22,7 +22,7 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       <Container className="relative z-10 py-20">
         <h1 className="font-headline text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight">
-          <span className="block">Hello, I'm Atif.</span>
+          <span className="block">Hello, I'm Atif R.</span>
           <span className="block text-primary animate-text-glow">Welcome to My Universe.</span>
         </h1>
         <div className="mt-8 text-xl sm:text-2xl md:text-3xl text-muted-foreground font-medium flex items-baseline justify-center">
