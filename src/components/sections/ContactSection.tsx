@@ -1,0 +1,128 @@
+"use client";
+
+import { useState } from 'react';
+import { Container } from '@/components/shared/Container';
+import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Send, Mail, Phone, MapPin } from 'lucide-react';
+
+export function ContactSection() {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // Simulate form submission
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log('Form data submitted:', formData);
+    toast({
+      title: "Message Sent!",
+      description: "Thanks for reaching out. I'll get back to you soon.",
+    });
+    setFormData({ name: '', email: '', message: '' });
+    setIsSubmitting(false);
+  };
+
+  const contactInfo = [
+    { icon: Mail, text: "atif.codes@example.com", href: "mailto:atif.codes@example.com" },
+    { icon: Phone, text: "+1 (555) 123-4567", href: "tel:+15551234567" },
+    { icon: MapPin, text: "Cyberjaya, Malaysia" },
+  ];
+
+  return (
+    <section id="contact" className="py-16 md:py-24 bg-secondary/10">
+      <Container>
+        <ScrollAnimationWrapper>
+          <h2 className="text-4xl md:text-5xl font-headline font-bold text-center mb-12">
+            Get In <span className="text-primary">Touch</span>
+          </h2>
+          <p className="text-center text-lg text-muted-foreground max-w-2xl mx-auto mb-16">
+            Have a project in mind, a question, or just want to say hi? Feel free to reach out. I'm always excited to connect and explore new opportunities.
+          </p>
+        </ScrollAnimationWrapper>
+
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="100ms">
+            <div className="bg-card p-8 rounded-lg shadow-xl space-y-6">
+              <h3 className="text-2xl font-semibold text-foreground mb-6">Contact Information</h3>
+              {contactInfo.map((info, index) => (
+                <div key={index} className="flex items-start space-x-4">
+                  <info.icon className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                  {info.href ? (
+                    <a href={info.href} className="text-muted-foreground hover:text-primary transition-colors">
+                      {info.text}
+                    </a>
+                  ) : (
+                    <p className="text-muted-foreground">{info.text}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollAnimationWrapper>
+
+          <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="200ms">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-card p-8 rounded-lg shadow-xl">
+              <div>
+                <Label htmlFor="name" className="text-foreground">Full Name</Label>
+                <Input
+                  type="text"
+                  name="name"
+                  id="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your Name"
+                  required
+                  className="mt-2 bg-input text-foreground border-border focus:ring-primary"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-foreground">Email Address</Label>
+                <Input
+                  type="email"
+                  name="email"
+                  id="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your.email@example.com"
+                  required
+                  className="mt-2 bg-input text-foreground border-border focus:ring-primary"
+                />
+              </div>
+              <div>
+                <Label htmlFor="message" className="text-foreground">Message</Label>
+                <Textarea
+                  name="message"
+                  id="message"
+                  rows={5}
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="Your message here..."
+                  required
+                  className="mt-2 bg-input text-foreground border-border focus:ring-primary"
+                />
+              </div>
+              <Button type="submit" className="w-full font-semibold" disabled={isSubmitting}>
+                {isSubmitting ? 'Sending...' : (
+                  <>
+                    <Send className="mr-2 h-5 w-5" />
+                    Send Message
+                  </>
+                )}
+              </Button>
+            </form>
+          </ScrollAnimationWrapper>
+        </div>
+      </Container>
+    </section>
+  );
+}
