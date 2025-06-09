@@ -14,14 +14,14 @@ import {z} from 'genkit';
 const SuggestedBlockSchema = z.object({
   blockType: z.string().describe('Type of content block (e.g., "Introductory Paragraph", "Service Item List (3 items)", "Project Showcase (single featured project)", "Call to Action"). Be descriptive.'),
   description: z.string().describe('What this block should contain or achieve within the section.'),
-  contentHint: z.string().optional().describe('A brief hint or example of the content for this block, or a prompt idea if the user were to generate it with another AI tool.'),
+  contentHint: z.string().optional().describe('A detailed and actionable hint for the content of this block. This could be a 1-2 sentence example, or a clear mini-prompt for another AI tool. Should align with the overall desired tone of the section.'),
 });
 export type SuggestedBlock = z.infer<typeof SuggestedBlockSchema>;
 
 const SuggestSectionStructureInputSchema = z.object({
   sectionTopic: z.string().describe('Main purpose or topic of the section (e.g., "Showcasing my web design services", "Explaining my work process", "Why choose me?").'),
   targetAudience: z.string().optional().describe('Who is this section primarily for? (e.g., "Startups", "Technical Managers", "Non-technical clients").'),
-  desiredTone: z.enum(['professional', 'creative', 'technical', 'friendly', 'persuasive']).optional().describe('The desired tone for the content in this section.'),
+  desiredTone: z.enum(['professional', 'creative', 'technical', 'friendly', 'persuasive']).default('professional').optional().describe('The desired tone for the content in this section. This tone should influence the generated content hints.'),
   keyElementsToInclude: z.array(z.string()).optional().describe('A list of specific elements or information the user definitely wants to include in this section (e.g., "My top 3 projects", "A client testimonial", "Pricing information").'),
 });
 export type SuggestSectionStructureInput = z.infer<typeof SuggestSectionStructureInputSchema>;
@@ -47,7 +47,7 @@ const prompt = ai.definePrompt({
 User's Goal for the section:
 Topic: {{sectionTopic}}
 {{#if targetAudience}}Target Audience: {{targetAudience}}{{/if}}
-{{#if desiredTone}}Desired Tone: {{desiredTone}}{{/if}}
+Desired Tone for the section content: {{desiredTone}}. This tone MUST strongly influence the 'contentHint' for each block.
 {{#if keyElementsToInclude.length}}
 Key Elements to Include:
 {{#each keyElementsToInclude}}
@@ -69,12 +69,12 @@ Your suggestion should include:
 2.  'suggestedBlocks': An ordered array of content blocks. For each block:
     *   'blockType': Describe the type of block (e.g., "Engaging Introduction Paragraph", "Key Services Showcase (3 items)", "Featured Project Spotlight", "Client Success Story", "Clear Call to Action"). You can suggest combinations or lists of the atomic blocks mentioned above.
     *   'description': Explain the purpose of this block within the section and what key information it should convey.
-    *   'contentHint' (optional): Provide a brief idea or prompt for the content of this block. For example, if suggesting a "Service Item Block", the hint could be "Focus on 'Responsive Web Design'".
+    *   'contentHint' (optional but highly recommended): Provide a DETAILED and ACTIONABLE hint for the content of this block. This should be more than just a topic; aim for a 1-2 sentence example of what the content could be, or a clear mini-prompt that the user could give to another AI to generate the full content for that block. This hint MUST reflect the 'desiredTone' of the section. For instance, if desiredTone is 'creative' and blockType is 'About Paragraph Block' for a photography portfolio, a contentHint might be: "Generate an engaging paragraph that starts with 'Through my lens, the world transforms...' and highlights a unique artistic approach."
 3.  'layoutIdea': A brief textual description of a possible visual arrangement for these blocks.
 4.  'rationale' (optional): Briefly explain why this structure is suitable for the user's goal.
 
 Focus on creating a logical flow that would be engaging and informative for the {{#if targetAudience}}{{targetAudience}}{{else}}target audience{{/if}}.
-Ensure the 'suggestedBlocks' array is well-structured and provides clear guidance.
+Ensure the 'suggestedBlocks' array is well-structured and provides clear, actionable guidance, especially in the 'contentHint' field reflecting the 'desiredTone'.
 Output ONLY the JSON object as specified by the output schema.
 `,
 });
@@ -89,9 +89,11 @@ const suggestSectionStructureFlow = ai.defineFlow(
     // Ensure optional arrays are present for the prompt
     const effectiveInput = {
       ...input,
+      desiredTone: input.desiredTone || 'professional', // Default tone if not provided
       keyElementsToInclude: input.keyElementsToInclude || [],
     };
     const {output} = await prompt(effectiveInput);
     return output!;
   }
 );
+
