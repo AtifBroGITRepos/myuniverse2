@@ -10,3 +10,4 @@ import '@/ai/flows/summarize-messages-flow.ts';
 import '@/ai/flows/generate-hero-text-flow.ts';
 import '@/ai/flows/generate-service-item-flow.ts';
 import '@/ai/flows/generate-project-highlight-flow.ts';
+import '@/ai/flows/suggest-section-structure-flow.ts';

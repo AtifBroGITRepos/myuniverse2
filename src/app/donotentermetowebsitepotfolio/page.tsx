@@ -19,11 +19,13 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { generateHeroText, type GenerateHeroTextInput, type GenerateHeroTextOutput } from '@/ai/flows/generate-hero-text-flow';
-import { generateServiceItem, type GenerateServiceItemInput, type GenerateServiceItemOutput } from '@/ai/flows/generate-service-item-flow';
-import { generateProjectHighlight, type GenerateProjectHighlightInput, type GenerateProjectHighlightOutput } from '@/ai/flows/generate-project-highlight-flow';
+import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generate-hero-text-flow';
+import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
+import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
+import { suggestSectionStructure, type SuggestSectionStructureInput } from '@/ai/flows/suggest-section-structure-flow';
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb } from 'lucide-react';
+
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -787,7 +789,7 @@ function MessagesManager() {
   );
 }
 
-type AIContentBlockType = 'hero' | 'about' | 'service' | 'project';
+type AIContentBlockType = 'hero' | 'about' | 'service' | 'project' | 'section_structure';
 
 interface AIOutput {
   title?: string;
@@ -846,12 +848,21 @@ function AIContentIdeasGenerator() {
         };
         result = await generateProjectHighlight(projectInput);
         setOutput({ title: "Generated Project Highlight", json: JSON.stringify(result, null, 2) });
+      } else if (blockType === 'section_structure') {
+        const sectionInput: SuggestSectionStructureInput = {
+          sectionTopic: inputs.sectionTopic || 'A new portfolio section',
+          targetAudience: inputs.targetAudience || '',
+          desiredTone: inputs.desiredTone || 'professional',
+          keyElementsToInclude: inputs.keyElementsToInclude?.split(',').map((k: string) => k.trim()) || [],
+        };
+        result = await suggestSectionStructure(sectionInput);
+        setOutput({ title: "Generated Section Structure Suggestion", json: JSON.stringify(result, null, 2) });
       }
-      toast({ title: "AI Content Generated!", description: `Content for ${blockType} generated successfully.` });
+      toast({ title: "AI Content Generated!", description: `Content for ${blockType.replace('_', ' ')} generated successfully.` });
     } catch (error) {
       console.error(`Error generating AI content for ${blockType}:`, error);
-      toast({ title: "AI Error", description: `Could not generate content for ${blockType}. Please try again.`, variant: "destructive" });
-      setOutput({ title: `Error generating ${blockType} content`, text: "An error occurred." });
+      toast({ title: "AI Error", description: `Could not generate content for ${blockType.replace('_', ' ')}. Please try again.`, variant: "destructive" });
+      setOutput({ title: `Error generating ${blockType.replace('_', ' ')} content`, text: "An error occurred." });
     } finally {
       setIsLoading(false);
     }
@@ -917,6 +928,24 @@ function AIContentIdeasGenerator() {
             <Input placeholder="Client Industry (optional)" value={inputs.clientIndustry || ''} onChange={e => handleInputChange('clientIndustry', e.target.value)} className="bg-input" />
           </>
         );
+      case 'section_structure':
+        return (
+          <>
+            <Textarea placeholder="Main topic or purpose of the section (e.g., Showcase my AI skills)" value={inputs.sectionTopic || ''} onChange={e => handleInputChange('sectionTopic', e.target.value)} className="bg-input" rows={2}/>
+            <Input placeholder="Target Audience (optional, e.g., Startups)" value={inputs.targetAudience || ''} onChange={e => handleInputChange('targetAudience', e.target.value)} className="bg-input" />
+            <Select value={inputs.desiredTone || 'professional'} onValueChange={value => handleInputChange('desiredTone', value)}>
+              <SelectTrigger className="bg-input"><SelectValue placeholder="Select Desired Tone" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="creative">Creative</SelectItem>
+                <SelectItem value="technical">Technical</SelectItem>
+                <SelectItem value="friendly">Friendly</SelectItem>
+                <SelectItem value="persuasive">Persuasive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Key elements to include (comma-separated, optional)" value={inputs.keyElementsToInclude || ''} onChange={e => handleInputChange('keyElementsToInclude', e.target.value)} className="bg-input" />
+          </>
+        );
       default:
         return null;
     }
@@ -926,11 +955,11 @@ function AIContentIdeasGenerator() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>AI Content Ideas Generator</CardTitle>
-        <CardDescription>Generate content snippets for different parts of your portfolio. The output can be copied and adapted.</CardDescription>
+        <CardDescription>Generate content snippets or section structure ideas for your portfolio. The output can be copied and adapted.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="block-type-select">Content Block Type</Label>
+          <Label htmlFor="block-type-select">Content / Structure Type</Label>
           <Select value={blockType} onValueChange={(value) => { setBlockType(value as AIContentBlockType); setInputs({}); setOutput(null); }}>
             <SelectTrigger id="block-type-select" className="bg-input">
               <SelectValue placeholder="Select block type" />
@@ -940,18 +969,19 @@ function AIContentIdeasGenerator() {
               <SelectItem value="about">About Paragraph Block</SelectItem>
               <SelectItem value="service">Service Item Block</SelectItem>
               <SelectItem value="project">Project Highlight Block</SelectItem>
+              <SelectItem value="section_structure">Section Structure Suggestion</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-3 p-4 border rounded-md bg-secondary/20">
-          <h4 className="font-medium">Inputs for {blockType.charAt(0).toUpperCase() + blockType.slice(1)} Block:</h4>
+          <h4 className="font-medium">Inputs for {blockType.replace('_', ' ').charAt(0).toUpperCase() + blockType.replace('_', ' ').slice(1)}:</h4>
           {renderInputs()}
         </div>
         
         <Button onClick={handleGenerate} disabled={isLoading} className="w-full">
           <Sparkles className="mr-2 h-4 w-4" />
-          {isLoading ? `Generating ${blockType} content...` : `Generate ${blockType.charAt(0).toUpperCase() + blockType.slice(1)} Content`}
+          {isLoading ? `Generating ${blockType.replace('_', ' ')}...` : `Generate ${blockType.replace('_', ' ').charAt(0).toUpperCase() + blockType.replace('_', ' ').slice(1)}`}
         </Button>
 
         {output && (
@@ -961,7 +991,7 @@ function AIContentIdeasGenerator() {
             </CardHeader>
             <CardContent>
               {output.text && <p className="whitespace-pre-wrap text-sm">{output.text}</p>}
-              {output.json && <Textarea value={output.json} readOnly rows={10} className="bg-input/50 text-xs font-mono" />}
+              {output.json && <Textarea value={output.json} readOnly rows={15} className="bg-input/50 text-xs font-mono" />}
             </CardContent>
           </Card>
         )}
@@ -1095,5 +1125,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
