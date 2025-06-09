@@ -1,3 +1,4 @@
+
 # Atif's Universe - Next.js Portfolio
 
 Welcome to Atif's Universe, a dynamic and feature-rich personal portfolio website built with Next.js, React, ShadCN UI, Tailwind CSS, and Genkit for AI-powered features.
@@ -37,7 +38,7 @@ Welcome to Atif's Universe, a dynamic and feature-rich personal portfolio websit
     ```
 3.  **Set up Environment Variables:**
     *   The application uses a `.env` file for configuration (API keys, SMTP settings).
-    *   Run `npm run dev` and navigate to `http://localhost:9002/setup` in your browser. This page will help you generate the content for your `.env` file.
+    *   Run `npm run dev` and navigate to `http://localhost:9002/app-config-and-deployment-interface` in your browser. This page will help you generate the content for your `.env` file. (Note: Port 9002 is the dev server default for this project).
     *   Create a `.env` file in the project root and paste the generated content into it.
     *   **Key variables to set:** `GOOGLE_API_KEY`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `EMAIL_FROM`, `ADMIN_EMAIL`, `SYSTEM_ALERT_EMAILS`.
 4.  **Run the development server:**
@@ -58,7 +59,7 @@ Welcome to Atif's Universe, a dynamic and feature-rich personal portfolio websit
 For detailed instructions on deploying this application to a server, please refer to the [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) file.
 
 This guide covers:
-*   Environment variable setup (using the `/setup` page or manually).
+*   Environment variable setup (using the `/app-config-and-deployment-interface` page or manually).
 *   Building and running the application in production.
 *   Content management workflow for making admin panel changes live.
 *   Configuring email and AI features.
@@ -83,3 +84,5 @@ This guide covers:
 ---
 
 This project was prototyped with Firebase Studio.
+
+    

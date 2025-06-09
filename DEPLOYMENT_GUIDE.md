@@ -1,3 +1,4 @@
+
 # Deployment Guide for Atif's Universe Portfolio
 
 This guide provides step-by-step instructions to set up and deploy your "Atif's Universe" Next.js portfolio application.
@@ -29,7 +30,7 @@ The application requires environment variables for API keys, SMTP settings, and 
     # or
     yarn dev
     ```
-3.  Open your browser and navigate to `http://localhost:9002/setup`. (Replace `localhost:9002` with your actual development server address if different).
+3.  Open your browser and navigate to `http://localhost:9002/app-config-and-deployment-interface`. (Replace `localhost:9002` with your actual development server address if different).
 4.  This page is an **Interactive Setup Guide & Configurator**. Fill in all the required fields (Google API Key, SMTP details, admin email, system alert emails, etc.).
 5.  Click the "Generate .env Content" button.
 6.  Copy the generated content.
@@ -37,7 +38,7 @@ The application requires environment variables for API keys, SMTP settings, and 
 ### Creating the `.env` File on Your Server
 
 1.  In the **root directory** of your project on your server, create a file named `.env`.
-2.  Paste the content you copied from the `/setup` page (or manually constructed) into this `.env` file.
+2.  Paste the content you copied from the `/app-config-and-deployment-interface` page (or manually constructed) into this `.env` file.
 3.  Save the file.
 
 **Example `.env` structure:**
@@ -87,7 +88,7 @@ npm run start
 # or
 yarn start
 ```
-By default, this usually runs on port 3000 (for Next.js default). Your hosting provider might manage this differently or you might specify a port.
+By default, this usually runs on port 3000 (for Next.js default). Your hosting provider might manage this differently or you might specify a port. The development server for this project is set to port 9002 in `package.json`.
 
 For robust production deployments, consider using a process manager like PM2:
 ```bash
@@ -139,3 +140,5 @@ This uses `src/ai/dev.ts` to start the Genkit development server.
 ---
 
 This guide should help you get "Atif's Universe" up and running. If you encounter issues, check your server logs (especially for SMTP or AI API errors), your `.env` configuration, and your SMTP provider settings.
+
+    
