@@ -200,12 +200,9 @@ export interface EmailTemplates {
   adminNotificationProjectHTML: string;
 }
 
-const siteName = "Atif's Universe";
-const currentYear = new Date().getFullYear();
-
-// These default templates are now used to initialize the EmailTemplatesEditor
-// The actual sendInquiryEmails action directly defines its HTML.
-// If you want to change the *actual* emails sent, you need to modify src/app/actions/send-inquiry-email.ts
+// These default templates are used to initialize the EmailTemplatesEditor in the admin panel.
+// The actual emails are sent using the HTML defined in `src/app/actions/send-inquiry-email.ts`.
+// To update live emails, copy from the admin editor to the server action file.
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
   userConfirmationGeneralHTML: `
 <html>
@@ -222,7 +219,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <p style="font-size: 16px; color: #333333;">Thank you for reaching out to {{siteName}}. We have received your message and will get back to you as soon as possible.</p>
         <p style="font-size: 16px; color: #333333; margin-top: 20px;"><strong>Your message:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9;">
-          {{userMessage}}
+          {{userMessageHTML}}
         </div>
         <p style="font-size: 16px; color: #333333; margin-top: 30px;">Best regards,<br/>The {{siteName}} Team</p>
       </td>
@@ -278,7 +275,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <p style="font-size: 16px; color: #333333;"><strong>Email:</strong> <a href="mailto:{{userEmail}}" style="color: #39FF14; text-decoration: none;">{{userEmail}}</a></p>
         <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Message:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
-          {{userMessage}}
+          {{userMessageHTML}}
         </div>
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
         <p style="font-size: 16px; color: #333333;">Please follow up with them at your earliest convenience.</p>
@@ -310,7 +307,7 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
         <p style="font-size: 16px; color: #333333;"><strong>Regarding Project:</strong> {{projectTitleForEmail}}</p>
         <p style="font-size: 16px; color: #333333; margin-top: 15px;"><strong>Client's Project Idea/Requirements:</strong></p>
         <div style="font-size: 15px; color: #555555; padding: 10px; border-left: 3px solid #39FF14; background-color: #f9f9f9; white-space: pre-wrap;">
-          {{clientProjectIdea}}
+          {{clientProjectIdeaHTML}}
         </div>
         {{aiGeneratedIdeasHTML}}
         <hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">
@@ -326,3 +323,4 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
+

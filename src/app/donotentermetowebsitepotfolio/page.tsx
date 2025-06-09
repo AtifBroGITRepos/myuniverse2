@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
@@ -24,10 +25,11 @@ import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generat
 import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
 import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
 import { suggestSectionStructure, type SuggestSectionStructureInput } from '@/ai/flows/suggest-section-structure-flow';
+import { generateEmailContent, type GenerateEmailContentInput } from '@/ai/flows/generate-email-content-flow';
 import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -1054,9 +1056,41 @@ function SmtpConfigViewer() {
 function AdminMailSender() {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(''); // This will store HTML
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [aiUserPrompt, setAiUserPrompt] = useState('');
+  const [aiTone, setAiTone] = useState<GenerateEmailContentInput['tone']>('professional');
+  const [aiLength, setAiLength] = useState<GenerateEmailContentInput['lengthHint']>('medium');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+
+  const handleGenerateEmailWithAI = async () => {
+    if (!aiUserPrompt.trim()) {
+      toast({ title: "Prompt Required", description: "Please enter your core message for the AI.", variant: "destructive" });
+      return;
+    }
+    setIsAiGenerating(true);
+    try {
+      const input: GenerateEmailContentInput = {
+        userPrompt: aiUserPrompt,
+        tone: aiTone,
+        lengthHint: aiLength,
+      };
+      const result = await generateEmailContent(input);
+      setBody(result.suggestedHtmlBody); // Set the main email body
+      toast({ title: "AI Email Content Generated!", description: "The email body has been updated." });
+      setIsAiDialogOpen(false); // Close dialog on success
+      setAiUserPrompt(''); // Reset AI prompt
+    } catch (error) {
+      console.error("Error generating email content with AI:", error);
+      toast({ title: "AI Error", description: "Could not generate email content. Please try again.", variant: "destructive" });
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -1066,7 +1100,8 @@ function AdminMailSender() {
     }
     setIsSending(true);
     try {
-      const result = await sendAdminComposedEmail({ to, subject, htmlBody: body.replace(/\n/g, '<br/>') });
+      // Body is already HTML from the Textarea (potentially AI-generated)
+      const result = await sendAdminComposedEmail({ to, subject, htmlBody: body }); 
       if (result.success) {
         toast({ title: "Email Sent!", description: `Successfully sent email to ${to}.` });
         setTo('');
@@ -1075,9 +1110,9 @@ function AdminMailSender() {
       } else {
         toast({ title: "Email Error", description: result.error || "Failed to send email. Check server logs.", variant: "destructive" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending admin email:", error);
-      toast({ title: "Email Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+      toast({ title: "Email Error", description: error.message || "An unexpected error occurred. Please try again.", variant: "destructive" });
     } finally {
       setIsSending(false);
     }
@@ -1088,7 +1123,7 @@ function AdminMailSender() {
       <CardHeader>
         <CardTitle>Compose & Send Email</CardTitle>
         <CardDescription>
-          Send an email directly from the admin panel. The email will be sent using the website's configured SMTP settings (i.e., from the server's `EMAIL_FROM` address).
+          Send an email directly from the admin panel. The email will be sent using the website's configured SMTP settings.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -1117,18 +1152,83 @@ function AdminMailSender() {
               className="bg-input"
             />
           </div>
-          <div>
-            <Label htmlFor="mail-body">Message Body:</Label>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="mail-body">Message Body (HTML):</Label>
+              <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    <Sparkles className="mr-2 h-4 w-4" /> Compose with AI
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-card">
+                  <DialogHeader>
+                    <DialogTitle className="text-foreground">Compose Email Body with AI</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
+                      Provide a prompt and select a tone, and AI will help draft the email body.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <Label htmlFor="ai-user-prompt" className="text-foreground">What do you want to say? (AI Prompt)</Label>
+                      <Textarea
+                        id="ai-user-prompt"
+                        value={aiUserPrompt}
+                        onChange={(e) => setAiUserPrompt(e.target.value)}
+                        placeholder="e.g., Follow up on our last meeting, propose new project X..."
+                        rows={3}
+                        className="bg-input mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ai-tone" className="text-foreground">Tone</Label>
+                      <Select value={aiTone} onValueChange={(v) => setAiTone(v as any)}>
+                        <SelectTrigger id="ai-tone" className="bg-input mt-1">
+                          <SelectValue placeholder="Select tone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="professional">Professional</SelectItem>
+                          <SelectItem value="friendly">Friendly</SelectItem>
+                          <SelectItem value="concise">Concise</SelectItem>
+                          <SelectItem value="persuasive">Persuasive</SelectItem>
+                          <SelectItem value="formal">Formal</SelectItem>
+                          <SelectItem value="informal">Informal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                     <div>
+                      <Label htmlFor="ai-length" className="text-foreground">Approximate Length</Label>
+                      <Select value={aiLength} onValueChange={(v) => setAiLength(v as any)}>
+                        <SelectTrigger id="ai-length" className="bg-input mt-1">
+                          <SelectValue placeholder="Select length" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="short">Short</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="long">Long</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" onClick={handleGenerateEmailWithAI} disabled={isAiGenerating}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {isAiGenerating ? "Generating..." : "Generate Body"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Textarea 
               id="mail-body" 
               value={body} 
               onChange={(e) => setBody(e.target.value)} 
-              placeholder="Type your message here..." 
-              rows={8} 
+              placeholder="Type your HTML message here, or use AI to compose..." 
+              rows={10} 
               required 
-              className="bg-input"
+              className="bg-input font-mono text-xs"
             />
-            <p className="text-xs text-muted-foreground mt-1">Simple HTML is supported (e.g., use &lt;br/&gt; for line breaks). For complex HTML, compose elsewhere and paste here.</p>
+            <p className="text-xs text-muted-foreground mt-1">Enter raw HTML. Use &lt;br/&gt; for line breaks. AI generator will also produce HTML.</p>
           </div>
           <Button type="submit" disabled={isSending} className="w-full">
             <Send className="mr-2 h-4 w-4" />
@@ -1139,6 +1239,7 @@ function AdminMailSender() {
     </Card>
   );
 }
+
 
 function EmailTemplatesEditor() {
   const [templates, setTemplates] = useState<EmailTemplates>(DEFAULT_EMAIL_TEMPLATES);
@@ -1151,10 +1252,12 @@ function EmailTemplatesEditor() {
         setTemplates(JSON.parse(storedTemplates));
       } catch (e) {
         console.error("Error parsing email templates from localStorage", e);
-        setTemplates(DEFAULT_EMAIL_TEMPLATES);
-        toast({ title: "Load Error", description: "Could not load saved email templates, reset to default.", variant: "destructive" });
+        // Fallback to defaults from constants.ts if parsing fails or data is corrupt
+        setTemplates(DEFAULT_EMAIL_TEMPLATES); 
+        toast({ title: "Load Error", description: "Could not load saved email templates, reset to default from constants.ts.", variant: "destructive" });
       }
     } else {
+      // If nothing in localStorage, initialize with defaults from constants.ts
       setTemplates(DEFAULT_EMAIL_TEMPLATES);
     }
   }, [toast]);
@@ -1169,42 +1272,58 @@ function EmailTemplatesEditor() {
   };
 
   const handleReset = () => {
-    setTemplates(DEFAULT_EMAIL_TEMPLATES);
+    // Reset to defaults defined in constants.ts
+    setTemplates(DEFAULT_EMAIL_TEMPLATES); 
     localStorage.removeItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
-    toast({ title: "Reset Successful", description: "Email templates reset to default values." });
+    toast({ title: "Reset Successful", description: "Email templates reset to default values (from constants.ts)." });
   };
 
   const availablePlaceholders = [
-    { name: "{{siteName}}", desc: "Your website's name." },
-    { name: "{{currentYear}}", desc: "The current year." },
+    { name: "{{siteName}}", desc: "Your website's name (from send-inquiry-email.ts)." },
+    { name: "{{currentYear}}", desc: "The current year (from send-inquiry-email.ts)." },
     { name: "{{userName}}", desc: "The name of the person who submitted the form." },
     { name: "{{userEmail}}", desc: "The email of the person who submitted the form." },
-    { name: "{{userMessage}}", desc: "The message content from a general contact form (auto nl2br)." },
+    { name: "{{userMessage}}", desc: "Raw message content for general contact (use nl2br in template if needed or use {{userMessageHTML}})." },
+    { name: "{{userMessageHTML}}", desc: "HTML version of general contact message (newlines converted to <br/>)." },
     { name: "{{projectTitleForEmail}}", desc: "The project title for service inquiries (or 'our services')." },
-    { name: "{{clientProjectIdea}}", desc: "The client's project idea for service inquiries (auto nl2br)." },
-    { name: "{{clientProjectIdeaHTML}}", desc: "HTML block for client's project idea (user confirmation email)." },
-    { name: "{{aiGeneratedIdeas}}", desc: "AI generated ideas for service inquiries (auto nl2br)." },
-    { name: "{{aiGeneratedIdeasHTML}}", desc: "HTML block for AI generated ideas (admin notification email)." },
+    { name: "{{clientProjectIdea}}", desc: "Raw client's project idea for service inquiries (use nl2br or {{clientProjectIdeaHTML}})." },
+    { name: "{{clientProjectIdeaHTML}}", desc: "HTML version of client's project idea (user confirmation email; newlines to <br/>)." },
+    { name: "{{aiGeneratedIdeas}}", desc: "Raw AI generated ideas for service inquiries (use nl2br or {{aiGeneratedIdeasHTML}})." },
+    { name: "{{aiGeneratedIdeasHTML}}", desc: "HTML block for AI generated ideas (admin notification; newlines to <br/>)." },
   ];
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Email Template Editor</CardTitle>
-        <CardDescription>
-          Customize the HTML templates for emails sent by the system. Templates are saved in your browser's local storage.
-          <br />
-          <strong>Important:</strong> To make these templates live, you must manually copy the HTML from here and paste it into the 
-          `src/app/actions/send-inquiry-email.ts` file on your server, then redeploy your application.
+        <CardDescription className="space-y-1">
+          <div>
+            Customize the HTML templates for emails sent by the system. Templates are saved in your browser's local storage.
+          </div>
+          <div className="font-semibold text-primary/90 p-2 border border-primary/30 rounded-md bg-primary/10">
+            <MessageCircleQuestion className="inline-block h-4 w-4 mr-1 text-primary"/>
+            <strong>Important Workflow:</strong> To make these templates live for actual emails, you must:
+            <ol className="list-decimal list-inside ml-4 mt-1 text-sm">
+              <li>Edit and save templates here (they are stored in your browser).</li>
+              <li>Manually copy the HTML from each textarea below.</li>
+              <li>Paste it into the corresponding HTML string variable within the <code className="text-xs bg-muted p-1 rounded">src/app/actions/send-inquiry-email.ts</code> file on your server.</li>
+              <li>Redeploy your application for the changes to take effect on the server.</li>
+            </ol>
+            This editor helps you design and manage the templates locally before updating the server code.
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <div>
           <h4 className="font-medium text-lg mb-2">Available Placeholders:</h4>
-          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground columns-1 md:columns-2">
             {availablePlaceholders.map(p => <li key={p.name}><strong>{p.name}</strong>: {p.desc}</li>)}
           </ul>
-           <p className="text-xs text-primary mt-2">Note: 'auto nl2br' means new lines in the input are converted to &lt;br/&gt; tags automatically by the server before insertion.</p>
+           <p className="text-xs text-primary/80 mt-2">
+             Note: Placeholders like `{{userMessageHTML}}` and `{{clientProjectIdeaHTML}}` are already processed by the server action to convert newlines to &lt;br/&gt;.
+             For raw content like `{{userMessage}}`, you would need to implement newline-to-break logic if desired within the template itself or rely on the HTML version.
+             The actual replacement logic is in `send-inquiry-email.ts`.
+           </p>
         </div>
 
         {(Object.keys(templates) as Array<keyof EmailTemplates>).map((templateName) => (
@@ -1237,11 +1356,11 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-foreground">Admin Dashboard</h2>
-        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage unless otherwise specified (e.g., emails).</p>
+        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage unless otherwise specified.</p>
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-11 mb-6 h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-11 mb-6 h-auto flex-wrap justify-start">
           <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
