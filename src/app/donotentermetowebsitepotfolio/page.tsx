@@ -48,7 +48,7 @@ function AboutEditor() {
   const handleReset = () => {
     setAboutText(ATIF_PORTFOLIO_DESCRIPTION);
     localStorage.removeItem(LOCALSTORAGE_ABOUT_KEY);
-    toast({ title: "Reset", description: "About Me text reset to default." });
+    toast({ title: "Reset Successful", description: "About Me text reset to default." });
   }
 
   const handleGenerateWithAI = async () => {
@@ -63,6 +63,8 @@ function AboutEditor() {
       if (result.suggestedText) {
         setAboutText(result.suggestedText);
         toast({ title: "AI Suggestion Applied!", description: "New About Me text generated." });
+      } else {
+        toast({ title: "AI Suggestion", description: "AI did not provide a new suggestion.", variant: "default" });
       }
     } catch (error) {
       console.error("Error generating about text with AI:", error);
@@ -110,7 +112,12 @@ function ServicesEditor() {
   useEffect(() => {
     const storedServices = localStorage.getItem(LOCALSTORAGE_SERVICES_KEY);
     if (storedServices) {
-      setServices(JSON.parse(storedServices));
+      try {
+        setServices(JSON.parse(storedServices));
+      } catch (e) {
+        console.error("Error parsing services from localStorage", e);
+        setServices(SERVICES_DATA); // Fallback to default if parsing fails
+      }
     } else {
       setServices(SERVICES_DATA); 
     }
@@ -130,10 +137,12 @@ function ServicesEditor() {
 
   const handleAddService = () => {
     setServices([...services, { id: `service-${Date.now()}`, title: '', description: '', iconName: 'Server' }]);
+    toast({ title: "Service Added", description: "A new service template has been added. Remember to save." });
   };
 
   const handleRemoveService = (index: number) => {
     setServices(services.filter((_, i) => i !== index));
+    toast({ title: "Service Removed", description: "The service has been removed. Remember to save your changes.", variant: "destructive" });
   };
 
   const handleSave = () => {
@@ -144,7 +153,7 @@ function ServicesEditor() {
   const handleReset = () => {
     setServices(SERVICES_DATA);
     localStorage.removeItem(LOCALSTORAGE_SERVICES_KEY);
-    toast({ title: "Reset", description: "Services data reset to default." });
+    toast({ title: "Reset Successful", description: "Services data reset to default." });
   };
 
   return (
@@ -217,7 +226,12 @@ function ProjectsEditor() {
   useEffect(() => {
     const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
     if (storedProjects) {
-      setProjects(JSON.parse(storedProjects));
+      try {
+        setProjects(JSON.parse(storedProjects));
+      } catch (e) {
+        console.error("Error parsing projects from localStorage", e);
+        setProjects(PROJECTS_DATA);
+      }
     } else {
       setProjects(PROJECTS_DATA);
     }
@@ -235,7 +249,7 @@ function ProjectsEditor() {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleProjectChange(index, 'imageUrl', reader.result as string);
-        toast({ title: "Image Preview Ready", description: "Image will be saved as Data URI on save."})
+        toast({ title: "Image Preview Ready", description: "Image updated. Remember to save."})
       };
       reader.readAsDataURL(file);
     }
@@ -253,10 +267,12 @@ function ProjectsEditor() {
       liveUrl: '',
       sourceUrl: ''
     }]);
+    toast({ title: "Project Added", description: "A new project template has been added. Remember to save." });
   };
 
   const handleRemoveProject = (index: number) => {
     setProjects(projects.filter((_, i) => i !== index));
+    toast({ title: "Project Removed", description: "The project has been removed. Remember to save your changes.", variant: "destructive" });
   };
 
   const handleSave = () => {
@@ -267,7 +283,7 @@ function ProjectsEditor() {
   const handleReset = () => {
     setProjects(PROJECTS_DATA);
     localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY);
-    toast({ title: "Reset", description: "Projects data reset to default." });
+    toast({ title: "Reset Successful", description: "Projects data reset to default." });
   };
 
   return (
@@ -340,7 +356,12 @@ function TestimonialsEditor() {
   useEffect(() => {
     const storedTestimonials = localStorage.getItem(LOCALSTORAGE_TESTIMONIALS_KEY);
     if (storedTestimonials) {
-      setTestimonials(JSON.parse(storedTestimonials));
+       try {
+        setTestimonials(JSON.parse(storedTestimonials));
+      } catch (e) {
+        console.error("Error parsing testimonials from localStorage", e);
+        setTestimonials(TESTIMONIALS_DATA);
+      }
     } else {
       setTestimonials(TESTIMONIALS_DATA);
     }
@@ -358,7 +379,7 @@ function TestimonialsEditor() {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleTestimonialChange(index, 'avatarUrl', reader.result as string);
-        toast({ title: "Avatar Preview Ready", description: "Image will be saved as Data URI." });
+        toast({ title: "Avatar Preview Ready", description: "Image updated. Remember to save." });
       };
       reader.readAsDataURL(file);
     }
@@ -374,10 +395,12 @@ function TestimonialsEditor() {
       avatarUrl: 'https://placehold.co/100x100.png',
       avatarHint: 'person',
     }]);
+    toast({ title: "Testimonial Added", description: "New testimonial template added. Remember to save." });
   };
 
   const handleRemoveTestimonial = (index: number) => {
     setTestimonials(testimonials.filter((_, i) => i !== index));
+    toast({ title: "Testimonial Removed", description: "Testimonial removed. Remember to save your changes.", variant: "destructive" });
   };
 
   const handleSave = () => {
@@ -388,7 +411,7 @@ function TestimonialsEditor() {
   const handleReset = () => {
     setTestimonials(TESTIMONIALS_DATA);
     localStorage.removeItem(LOCALSTORAGE_TESTIMONIALS_KEY);
-    toast({ title: "Reset", description: "Testimonials data reset to default." });
+    toast({ title: "Reset Successful", description: "Testimonials data reset to default." });
   };
 
   return (
@@ -454,7 +477,12 @@ function ContactEditor() {
   useEffect(() => {
     const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
     if (storedContactInfo) {
-      setContactInfo(JSON.parse(storedContactInfo));
+       try {
+        setContactInfo(JSON.parse(storedContactInfo));
+      } catch (e) {
+        console.error("Error parsing contact info from localStorage", e);
+        setContactInfo(CONTACT_INFO);
+      }
     } else {
       setContactInfo(CONTACT_INFO);
     }
@@ -480,7 +508,7 @@ function ContactEditor() {
   const handleReset = () => {
     setContactInfo(CONTACT_INFO);
     localStorage.removeItem(LOCALSTORAGE_CONTACT_KEY);
-    toast({ title: "Reset", description: "Contact info reset to default." });
+    toast({ title: "Reset Successful", description: "Contact info reset to default." });
   };
 
   return (
@@ -531,7 +559,12 @@ function HeaderNavEditor() {
   useEffect(() => {
     const storedNavItems = localStorage.getItem(LOCALSTORAGE_HEADER_NAV_KEY);
     if (storedNavItems) {
-      setNavItems(JSON.parse(storedNavItems));
+      try {
+        setNavItems(JSON.parse(storedNavItems));
+      } catch (e) {
+         console.error("Error parsing nav items from localStorage", e);
+        setNavItems(HEADER_NAV_ITEMS_DATA);
+      }
     } else {
       setNavItems(HEADER_NAV_ITEMS_DATA);
     }
@@ -542,6 +575,10 @@ function HeaderNavEditor() {
     updatedNavItems[index] = { ...updatedNavItems[index], [field]: value };
     setNavItems(updatedNavItems);
   };
+  
+  // Cannot add/remove nav items in this simple editor, only edit existing ones.
+  // To add/remove, one would typically modify constants.ts and redeploy.
+  // Or, a more complex state management and UI would be needed here.
 
   const handleSave = () => {
     localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
@@ -551,11 +588,9 @@ function HeaderNavEditor() {
   const handleReset = () => {
     setNavItems(HEADER_NAV_ITEMS_DATA);
     localStorage.removeItem(LOCALSTORAGE_HEADER_NAV_KEY);
-    toast({ title: "Reset", description: "Header navigation items reset to default." });
+    toast({ title: "Reset Successful", description: "Header navigation items reset to default." });
   };
   
-  // Cannot add/remove nav items in this simple editor, only edit existing ones.
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -606,7 +641,12 @@ function MessagesManager() {
   useEffect(() => {
     const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
     if (storedMessages) {
-      setMessages(JSON.parse(storedMessages));
+      try {
+        setMessages(JSON.parse(storedMessages));
+      } catch (e) {
+        console.error("Error parsing messages from localStorage", e);
+        setMessages([]);
+      }
     }
   }, []);
 
@@ -628,20 +668,20 @@ function MessagesManager() {
     };
     const updatedMessages = [...messages, messageToAdd];
     handleSaveMessages(updatedMessages);
-    setNewMessage({ name: '', email: '', message: '' });
+    setNewMessage({ name: '', email: '', message: '' }); // Reset form
     toast({ title: "Message Added", description: "Mock message saved to local storage." });
   };
 
   const handleRemoveMessage = (id: string) => {
     const updatedMessages = messages.filter(msg => msg.id !== id);
     handleSaveMessages(updatedMessages);
-    toast({ title: "Message Removed" });
+    toast({ title: "Message Removed", variant: "destructive" });
   };
   
   const handleClearAllMessages = () => {
     handleSaveMessages([]);
-    setSummary(null);
-    toast({ title: "All Messages Cleared" });
+    setSummary(null); // Clear summary as well
+    toast({ title: "All Messages Cleared", description: "All mock messages have been removed from local storage.", variant: "destructive" });
   };
 
   const handleSummarize = async () => {
@@ -655,10 +695,11 @@ function MessagesManager() {
       const input: SummarizeMessagesInput = { messages };
       const result = await summarizeMessages(input);
       setSummary(result.summary);
-      toast({ title: "AI Summary Generated!", variant: "default" });
+      toast({ title: "AI Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
     } catch (error) {
       console.error("Error summarizing messages:", error);
-      toast({ title: "AI Error", description: "Could not summarize messages.", variant: "destructive" });
+      setSummary("Error: Could not generate summary.");
+      toast({ title: "AI Error", description: "Could not summarize messages. Please try again.", variant: "destructive" });
     } finally {
       setIsLoadingSummary(false);
     }
@@ -668,7 +709,7 @@ function MessagesManager() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Messages & AI Summary</CardTitle>
-        <CardDescription>Manage mock user messages and use AI to summarize them.</CardDescription>
+        <CardDescription>Manage mock user messages and use AI to summarize them. Data is saved locally.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleAddMessage} className="p-4 border rounded-lg space-y-3 bg-secondary/20">
@@ -689,7 +730,14 @@ function MessagesManager() {
         </form>
 
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-foreground">Current Messages ({messages.length})</h4>
+          <div className="flex justify-between items-center">
+            <h4 className="text-lg font-medium text-foreground">Current Messages ({messages.length})</h4>
+            {messages.length > 0 && (
+              <Button variant="outline" onClick={handleClearAllMessages} size="sm">
+                <Trash2 className="mr-2 h-4 w-4"/> Clear All Messages
+              </Button>
+            )}
+          </div>
           {messages.length === 0 && <p className="text-muted-foreground">No messages yet. Add some using the form above.</p>}
           <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
             {messages.map(msg => (
@@ -703,11 +751,6 @@ function MessagesManager() {
               </Card>
             ))}
           </div>
-           {messages.length > 0 && (
-            <Button variant="outline" onClick={handleClearAllMessages} size="sm">
-              <Trash2 className="mr-2 h-4 w-4"/> Clear All Messages
-            </Button>
-          )}
         </div>
        
         <div className="space-y-2">
@@ -722,10 +765,9 @@ function MessagesManager() {
             </Card>
             )}
         </div>
-
       </CardContent>
        <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handleClearAllMessages}>Clear Messages from Local Storage</Button>
+        <Button variant="outline" onClick={handleClearAllMessages}>Clear All Messages from Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -788,7 +830,8 @@ export default function AdminPage() {
      }
   },[])
 
-  const handleLogin = () => {
+  const handleLogin = (e: FormEvent) => {
+    e.preventDefault();
     if (secretKey === ADMIN_SECRET_KEY) {
       setIsAuthenticated(true);
       sessionStorage.setItem('adminAuthenticated', 'true');
@@ -801,6 +844,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('adminAuthenticated');
+    setSecretKey(''); // Clear the secret key field on logout
     toast({title: "Logged Out", description: "You have been logged out of the admin panel."});
   }
 
@@ -814,22 +858,24 @@ export default function AdminPage() {
               <CardTitle className="text-2xl font-headline text-foreground">Admin Panel Access</CardTitle>
               <CardDescription className="text-muted-foreground">Enter the secret key to proceed.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="secret-key" className="text-foreground">Secret Key</Label>
-                <Input
-                  id="secret-key"
-                  type="password"
-                  value={secretKey}
-                  onChange={(e) => setSecretKey(e.target.value)}
-                  className="mt-1 bg-input text-foreground border-border focus:ring-primary"
-                  placeholder="********"
-                />
-              </div>
-              <Button onClick={handleLogin} className="w-full font-semibold">
-                <Unlock className="mr-2 h-5 w-5" />
-                Unlock
-              </Button>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="secret-key" className="text-foreground">Secret Key</Label>
+                  <Input
+                    id="secret-key"
+                    type="password"
+                    value={secretKey}
+                    onChange={(e) => setSecretKey(e.target.value)}
+                    className="mt-1 bg-input text-foreground border-border focus:ring-primary"
+                    placeholder="********"
+                  />
+                </div>
+                <Button type="submit" className="w-full font-semibold">
+                  <Unlock className="mr-2 h-5 w-5" />
+                  Unlock
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </Container>
@@ -848,4 +894,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
 
