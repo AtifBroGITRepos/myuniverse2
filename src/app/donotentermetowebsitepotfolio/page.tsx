@@ -23,9 +23,10 @@ import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generat
 import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
 import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
 import { suggestSectionStructure, type SuggestSectionStructureInput } from '@/ai/flows/suggest-section-structure-flow';
+import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -128,7 +129,7 @@ function ServicesEditor() {
     } else {
       setServices(SERVICES_DATA); 
     }
-  }, []);
+  }, [toast]);
 
   const handleServiceChange = (index: number, field: keyof Service, value: string) => {
     const updatedServices = [...services];
@@ -243,7 +244,7 @@ function ProjectsEditor() {
     } else {
       setProjects(PROJECTS_DATA);
     }
-  }, []);
+  }, [toast]);
 
   const handleProjectChange = (index: number, field: keyof Project, value: string | string[]) => {
     const updatedProjects = [...projects];
@@ -378,7 +379,7 @@ function TestimonialsEditor() {
     } else {
       setTestimonials(TESTIMONIALS_DATA);
     }
-  }, []);
+  }, [toast]);
 
   const handleTestimonialChange = (index: number, field: keyof Testimonial, value: string) => {
     const updatedTestimonials = [...testimonials];
@@ -504,7 +505,7 @@ function ContactEditor() {
     } else {
       setContactInfo(CONTACT_INFO);
     }
-  }, []);
+  }, [toast]);
 
   const handleChange = (field: keyof ContactDetails | `socials.${keyof ContactDetails['socials']}`, value: string) => {
     if (field.startsWith('socials.')) {
@@ -587,7 +588,7 @@ function HeaderNavEditor() {
     } else {
       setNavItems(HEADER_NAV_ITEMS_DATA);
     }
-  }, []);
+  }, [toast]);
 
   const handleNavItemChange = (index: number, field: keyof NavItem, value: string) => {
     const updatedNavItems = [...navItems];
@@ -664,7 +665,7 @@ function MessagesManager() {
         toast({ title: "Load Error", description: "Could not load saved messages, cleared local messages.", variant: "destructive" });
       }
     }
-  }, []);
+  }, [toast]);
 
   const handleSaveMessages = (updatedMessages: AdminMessage[]) => {
     localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(updatedMessages));
@@ -783,7 +784,6 @@ function MessagesManager() {
         </div>
       </CardContent>
        <CardFooter className="flex justify-end gap-2">
-         {/* Removed redundant clear all messages button, one is already in CardContent */}
       </CardFooter>
     </Card>
   );
@@ -1000,17 +1000,154 @@ function AIContentIdeasGenerator() {
   );
 }
 
+function SmtpConfigViewer() {
+  // In a real app, these values would ideally be fetched from a secure server endpoint
+  // For this client-side example, we'll indicate they are server-managed.
+  const emailFrom = process.env.NEXT_PUBLIC_EMAIL_FROM_DISPLAY || "Not Displayed (Server Configured)";
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL_DISPLAY || "Not Displayed (Server Configured)";
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>SMTP Configuration Viewer</CardTitle>
+        <CardDescription>
+          Displays information about the email sending configuration.
+          Sensitive details like passwords are managed securely on the server and are not shown here.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="p-4 border rounded-lg bg-secondary/20">
+          <h4 className="text-lg font-medium text-foreground mb-2">Email Sending Status</h4>
+          <p className="text-sm text-muted-foreground">
+            The email system uses SMTP settings defined in the server's environment variables.
+            This ensures your credentials remain secure.
+          </p>
+        </div>
+        <div className="p-4 border rounded-lg bg-secondary/20">
+          <h4 className="text-lg font-medium text-foreground mb-2">Key Configuration Points</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+            <li><strong>SMTP Host, Port, User, Password, Secure Flag:</strong> Set via server environment variables. Not displayed here for security.</li>
+            <li><strong>Default "From" Address for System Emails:</strong> All emails sent by the system (e.g., inquiry confirmations) will originate from an address configured on the server (`EMAIL_FROM`).</li>
+            <li><strong>Admin Notification Recipient:</strong> Admin notifications for new inquiries are sent to an email address configured on the server (`ADMIN_EMAIL`).</li>
+          </ul>
+        </div>
+         <div className="p-4 border rounded-lg bg-secondary/20">
+          <h4 className="text-lg font-medium text-foreground mb-2">To Change SMTP Settings:</h4>
+           <p className="text-sm text-muted-foreground">
+            You need to update the `.env` file on your server and restart the application.
+            Direct editing of these settings from the admin panel is not permitted for security reasons.
+          </p>
+        </div>
+      </CardContent>
+       <CardFooter>
+        <p className="text-xs text-muted-foreground">
+          This viewer provides a high-level overview. For detailed SMTP setup, refer to your server configuration and the `.env` file.
+        </p>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function AdminMailSender() {
+  const [to, setTo] = useState('');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!to || !subject || !body) {
+      toast({ title: "Missing Fields", description: "Please fill in To, Subject, and Message Body.", variant: "destructive" });
+      return;
+    }
+    setIsSending(true);
+    try {
+      const result = await sendAdminComposedEmail({ to, subject, htmlBody: body.replace(/\n/g, '<br/>') });
+      if (result.success) {
+        toast({ title: "Email Sent!", description: `Successfully sent email to ${to}.` });
+        setTo('');
+        setSubject('');
+        setBody('');
+      } else {
+        toast({ title: "Email Error", description: result.error || "Failed to send email. Check server logs.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error sending admin email:", error);
+      toast({ title: "Email Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Compose & Send Email</CardTitle>
+        <CardDescription>
+          Send an email directly from the admin panel. The email will be sent using the website's configured SMTP settings (i.e., from the server's `EMAIL_FROM` address).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="mail-to">To:</Label>
+            <Input 
+              id="mail-to" 
+              type="email" 
+              value={to} 
+              onChange={(e) => setTo(e.target.value)} 
+              placeholder="recipient@example.com" 
+              required 
+              className="bg-input"
+            />
+          </div>
+          <div>
+            <Label htmlFor="mail-subject">Subject:</Label>
+            <Input 
+              id="mail-subject" 
+              type="text" 
+              value={subject} 
+              onChange={(e) => setSubject(e.target.value)} 
+              placeholder="Email Subject" 
+              required 
+              className="bg-input"
+            />
+          </div>
+          <div>
+            <Label htmlFor="mail-body">Message Body:</Label>
+            <Textarea 
+              id="mail-body" 
+              value={body} 
+              onChange={(e) => setBody(e.target.value)} 
+              placeholder="Type your message here..." 
+              rows={8} 
+              required 
+              className="bg-input"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Simple HTML is supported (e.g., use &lt;br/&gt; for line breaks). For complex HTML, compose elsewhere and paste here.</p>
+          </div>
+          <Button type="submit" disabled={isSending} className="w-full">
+            <Send className="mr-2 h-4 w-4" />
+            {isSending ? "Sending..." : "Send Email"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-foreground">Admin Dashboard</h2>
-        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage.</p>
+        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage unless otherwise specified (e.g., emails).</p>
       </div>
 
       <Tabs defaultValue="about" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 mb-6 h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 mb-6 h-auto flex-wrap">
           <TabsTrigger value="about" className="py-2"><UserSquare className="mr-2 h-5 w-5"/>About</TabsTrigger>
           <TabsTrigger value="services" className="py-2"><Briefcase className="mr-2 h-5 w-5"/>Services</TabsTrigger>
           <TabsTrigger value="projects" className="py-2"><LayoutGrid className="mr-2 h-5 w-5"/>Projects</TabsTrigger>
@@ -1019,6 +1156,8 @@ function AdminDashboard() {
           <TabsTrigger value="navigation" className="py-2"><MenuSquareIcon className="mr-2 h-5 w-5"/>Navigation</TabsTrigger>
           <TabsTrigger value="messages" className="py-2"><BotMessageSquare className="mr-2 h-5 w-5"/>Messages</TabsTrigger>
           <TabsTrigger value="ai_content" className="py-2"><Lightbulb className="mr-2 h-5 w-5"/>AI Content</TabsTrigger>
+          <TabsTrigger value="smtp_config" className="py-2"><Settings className="mr-2 h-5 w-5"/>SMTP Config</TabsTrigger>
+          <TabsTrigger value="mail_sender" className="py-2"><MailPlus className="mr-2 h-5 w-5"/>Mail Sender</TabsTrigger>
         </TabsList>
         <TabsContent value="about">
           <AboutEditor />
@@ -1043,6 +1182,12 @@ function AdminDashboard() {
         </TabsContent>
          <TabsContent value="ai_content">
           <AIContentIdeasGenerator />
+        </TabsContent>
+         <TabsContent value="smtp_config">
+          <SmtpConfigViewer />
+        </TabsContent>
+        <TabsContent value="mail_sender">
+          <AdminMailSender />
         </TabsContent>
       </Tabs>
     </div>
@@ -1125,3 +1270,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
