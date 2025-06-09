@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -8,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
 import { Send, Mail, Phone, MapPin } from 'lucide-react';
+import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage } from '@/data/constants';
+
 
 export function ContactSection() {
   const { toast } = useToast();
@@ -21,15 +25,49 @@ export function ContactSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) {
+      toast({ title: "Missing fields", description: "Please fill in all fields.", variant: "destructive" });
+      return;
+    }
     setIsSubmitting(true);
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log('Form data submitted:', formData);
-    toast({
-      title: "Message Sent!",
-      description: "Thanks for reaching out. I'll get back to you soon.",
+
+    // Save to localStorage (for admin panel)
+    const newMessageForAdminPanel: AdminMessage = {
+      id: `contact-${Date.now()}`,
+      name: formData.name,
+      email: formData.email,
+      message: `General Contact Form:\n${formData.message}`,
+      receivedAt: new Date().toISOString(),
+    };
+    try {
+      const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
+      const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
+      messages.push(newMessageForAdminPanel);
+      localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
+    } catch (error) {
+      console.error('Error saving contact message to localStorage:', error);
+      // Non-critical, proceed with email sending
+    }
+
+    // Attempt to send emails
+    const emailResult = await sendInquiryEmails({
+      ...formData,
+      type: 'General Contact',
     });
-    setFormData({ name: '', email: '', message: '' });
+
+    if (emailResult.success) {
+      toast({
+        title: "Message Sent!",
+        description: "Thanks for reaching out. I'll get back to you soon.",
+      });
+      setFormData({ name: '', email: '', message: '' });
+    } else {
+      toast({
+        title: "Submission Error",
+        description: emailResult.error || "Could not send your message. Please try again later.",
+        variant: "destructive",
+      });
+    }
     setIsSubmitting(false);
   };
 

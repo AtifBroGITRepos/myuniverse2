@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateTestimonials, type GenerateTestimonialsInput } from '@/ai/flows/generate-testimonials';
 import { suggestProjectIdeas, type SuggestProjectIdeasInput } from '@/ai/flows/suggest-project-ideas';
+import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
 import { ExternalLink, Github, Sparkles, MessageSquare, Lightbulb, Send, Palette } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ATIF_PORTFOLIO_DESCRIPTION, LOCALSTORAGE_MESSAGES_KEY, type AdminMessage } from '@/data/constants';
@@ -35,6 +36,8 @@ function ProjectCard({ project }: ProjectCardProps) {
   const [inquiryProjectIdea, setInquiryProjectIdea] = useState('');
   const [aiGeneratedIdeas, setAiGeneratedIdeas] = useState<string | null>(null);
   const [isLoadingServiceIdeas, setIsLoadingServiceIdeas] = useState(false);
+  const [isSubmittingServiceInquiry, setIsSubmittingServiceInquiry] = useState(false);
+
 
   const { toast } = useToast();
 
@@ -71,8 +74,8 @@ function ProjectCard({ project }: ProjectCardProps) {
     try {
       const input: SuggestProjectIdeasInput = {
         businessNeeds: inquiryProjectIdea,
-        atifPortfolio: ATIF_PORTFOLIO_DESCRIPTION, // Using the general portfolio description
-        projectContext: project.title, // Context of the current project
+        atifPortfolio: ATIF_PORTFOLIO_DESCRIPTION, 
+        projectContext: project.title, 
       };
       const result = await suggestProjectIdeas(input);
       setAiGeneratedIdeas(result.projectIdeas);
@@ -85,46 +88,60 @@ function ProjectCard({ project }: ProjectCardProps) {
     }
   };
 
-  const handleServiceInquirySubmit = (e: FormEvent) => {
+  const handleServiceInquirySubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!inquiryName.trim() || !inquiryEmail.trim() || !inquiryProjectIdea.trim()) {
       toast({ title: 'Missing Fields', description: 'Please fill in your name, email, and project idea.', variant: 'destructive' });
       return;
     }
+    setIsSubmittingServiceInquiry(true);
 
-    const messageContent = `
+    const combinedMessageForAdmin = `
       Service Inquiry regarding project: "${project.title}"
-      Client Name: ${inquiryName}
-      Client Email: ${inquiryEmail}
-      Client Project Idea/Requirements:
+      Client's Project Idea/Requirements:
       ${inquiryProjectIdea}
       ${aiGeneratedIdeas ? `\nAI Suggested Ideas (for reference):\n${aiGeneratedIdeas}` : ''}
     `.trim();
 
-    const newMessage: AdminMessage = {
+    const newMessageForAdminPanel: AdminMessage = {
       id: `inquiry-${Date.now()}`,
       name: inquiryName,
       email: inquiryEmail,
-      message: messageContent,
+      message: combinedMessageForAdmin,
       receivedAt: new Date().toISOString(),
     };
 
     try {
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
-      messages.push(newMessage);
+      messages.push(newMessageForAdminPanel);
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
+    } catch (error) {
+      console.error('Error saving inquiry to localStorage:', error);
+      // Non-critical, proceed with email sending
+    }
 
+    const emailResult = await sendInquiryEmails({
+      name: inquiryName,
+      email: inquiryEmail,
+      message: combinedMessageForAdmin, // This content is for the admin
+      type: 'Project Service Inquiry',
+      projectTitle: project.title,
+      clientProjectIdea: inquiryProjectIdea,
+      aiGeneratedIdeas: aiGeneratedIdeas,
+    });
+
+    if (emailResult.success) {
       toast({ title: 'Inquiry Submitted!', description: 'Thank you for your interest. Atif will get back to you soon.' });
       setInquiryName('');
       setInquiryEmail('');
       setInquiryProjectIdea('');
       setAiGeneratedIdeas(null);
       setIsServiceModalOpen(false);
-    } catch (error) {
-      console.error('Error saving inquiry to localStorage:', error);
-      toast({ title: 'Submission Error', description: 'Could not save your inquiry. Please try again.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Submission Error', description: emailResult.error || 'Could not send your inquiry. Please try again.', variant: 'destructive' });
     }
+    setIsSubmittingServiceInquiry(false);
   };
 
 
@@ -197,6 +214,7 @@ function ProjectCard({ project }: ProjectCardProps) {
                       className="mt-1 bg-input text-foreground border-border focus:ring-primary"
                       placeholder="e.g., I need a similar e-commerce platform but for selling handmade crafts..."
                       rows={4}
+                      required
                     />
                   </div>
                   <Button type="button" variant="outline" onClick={handleGenerateServiceIdeas} disabled={isLoadingServiceIdeas || !inquiryProjectIdea.trim()} className="w-full">
@@ -217,6 +235,7 @@ function ProjectCard({ project }: ProjectCardProps) {
                       onChange={(e) => setInquiryName(e.target.value)}
                       className="mt-1 bg-input text-foreground border-border focus:ring-primary"
                       placeholder="John Doe"
+                      required
                     />
                   </div>
                   <div>
@@ -228,11 +247,12 @@ function ProjectCard({ project }: ProjectCardProps) {
                       onChange={(e) => setInquiryEmail(e.target.value)}
                       className="mt-1 bg-input text-foreground border-border focus:ring-primary"
                       placeholder="john.doe@example.com"
+                      required
                     />
                   </div>
                   <DialogFooter>
-                    <Button type="submit" className="w-full">
-                     <Send className="mr-2 h-4 w-4" /> Submit Inquiry
+                    <Button type="submit" className="w-full" disabled={isSubmittingServiceInquiry}>
+                     <Send className="mr-2 h-4 w-4" /> {isSubmittingServiceInquiry ? 'Submitting...' : 'Submit Inquiry'}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -313,7 +333,3 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
     </section>
   );
 }
-
-    
-
-    
