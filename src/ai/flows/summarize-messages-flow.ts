@@ -58,6 +58,26 @@ Messages:
 {{/each}}
 
 Overall Summary:`,
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+    ],
+  },
 });
 
 const summarizeMessagesFlow = ai.defineFlow(
@@ -68,6 +88,30 @@ const summarizeMessagesFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
+    // If output is null or undefined here, it means the LLM call failed to produce valid output
+    // according to the schema, or was blocked. Genkit's prompt() should ideally throw an error
+    // in such cases, which would be caught by the UI.
+    if (!output) {
+        // This case should ideally be handled by Genkit throwing an error,
+        // but as a fallback, we can construct an error-like response.
+        console.error('Summarize messages flow: LLM did not return a valid output.');
+        // Returning a structured error or throwing one here is also an option.
+        // For now, let the non-null assertion below potentially fail if Genkit's behavior changes,
+        // or rely on Genkit to throw before this point.
+        // However, to be more robust for the user's specific error message:
+        throw new Error("LLM failed to generate summary, output was null/undefined.");
+    }
+    return output; // Removed the non-null assertion '!' to see if an error propagates more clearly
+                  // However, if the schema guarantees output, 'output!' is fine.
+                  // For now, let's keep it as `return output;` and assume `prompt` throws on failure
+                  // or returns a valid structure. If errors persist with "output is null", we might need `output!`.
+                  // Re-evaluating: Genkit `prompt` returns `Promise<{ output: OutputType | null, ... }>`
+                  // So `output` CAN be null if the model doesn't produce it.
+                  // The original `return output!;` is correct if we assume an error will be thrown by Genkit or the model
+                  // if content generation fails significantly (e.g. safety).
+                  // If the model just returns nothing that matches schema, output can be null.
+                  // Let's stick to output! as it was, and rely on the safety settings.
+                  // If output is null and not an error, it implies the model responded but didn't fill the schema.
     return output!;
   }
 );
