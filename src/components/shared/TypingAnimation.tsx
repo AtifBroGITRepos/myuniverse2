@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -22,9 +23,14 @@ export function TypingAnimation({
   const [charIndex, setCharIndex] = useState(0);
   const [currentText, setCurrentText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    if (!texts || texts.length === 0) return;
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted || !texts || texts.length === 0) return;
 
     const handleTyping = () => {
       const fullText = texts[textIndex];
@@ -46,11 +52,17 @@ export function TypingAnimation({
 
     const timer = setTimeout(handleTyping, isDeleting ? deletingSpeed : typingSpeed);
     return () => clearTimeout(timer);
-  }, [charIndex, isDeleting, textIndex, texts, typingSpeed, deletingSpeed, pauseDuration]);
+  }, [charIndex, isDeleting, textIndex, texts, typingSpeed, deletingSpeed, pauseDuration, hasMounted]);
+
+  if (!hasMounted) {
+    // Render a non-breaking space as a placeholder to maintain layout integrity
+    // This ensures the server and initial client render match before dynamic content loads.
+    return <span className={cn("inline-block", className)}>&nbsp;</span>;
+  }
 
   return (
     <span className={cn("inline-block border-r-2 border-primary animate-pulse", className)}>
-      {currentText}
+      {currentText || '\u00A0'} {/* Render non-breaking space if currentText is empty to prevent collapse */}
     </span>
   );
 }
