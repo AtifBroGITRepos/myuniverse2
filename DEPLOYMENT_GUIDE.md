@@ -90,6 +90,8 @@ A `deploy.sh` script is included in the project root to automate these steps.
     *   Install production dependencies.
     *   Build the Next.js application.
     *   Provide guidance on starting the application (with commented-out PM2 examples).
+    
+    Refer to the **Troubleshooting** section below if you encounter issues, especially with Git.
 
 ### Option B: Manual Steps
 
@@ -176,6 +178,21 @@ npm run genkit:dev
 npm run genkit:watch
 ```
 This uses `src/ai/dev.ts` to start the Genkit development server.
+
+## 8. Troubleshooting
+
+### Git "dubious ownership" error
+
+If you encounter an error like `fatal: detected dubious ownership in repository at '/path/to/your/repository'` when the `deploy.sh` script runs `git pull`, it means the user running the script (e.g., `root`) is different from the owner of the Git repository files. This is a Git security feature.
+
+**Solution:**
+You need to tell Git that this directory is safe for the current user to operate on. Run the following command on your server, replacing `/path/to/your/repository` with the actual path to your project (e.g., `/home/universe/public_html`):
+```bash
+git config --global --add safe.directory /path/to/your/repository
+```
+After running this command, try executing the `./deploy.sh` script again.
+
+Alternatively, ensure you are running the `deploy.sh` script as the user who owns the project files.
 
 ---
 

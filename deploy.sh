@@ -17,6 +17,13 @@ GIT_BRANCH="main" # Or "master", or your deployment branch
 # --- Optional: Pull latest changes from Git ---
 if [ "$AUTO_PULL_GIT" = true ] ; then
   echo "🔄 Pulling latest changes from Git branch '$GIT_BRANCH'..."
+  # If you encounter a "fatal: detected dubious ownership in repository" error here,
+  # it means the user running this script (e.g., root) is different from the owner
+  # of the Git repository files.
+  # You may need to run:
+  # git config --global --add safe.directory /path/to/your/repository
+  # (Replace /path/to/your/repository with the actual path, e.g., /home/universe/public_html)
+  # See DEPLOYMENT_GUIDE.md for more details.
   git checkout $GIT_BRANCH
   git pull origin $GIT_BRANCH
   # If you need to discard local changes before pulling:
@@ -75,4 +82,3 @@ npm run build
 echo "✅ Deployment script finished."
 echo "ℹ️ If you are not using a process manager like PM2, you may need to start the application manually (e.g., 'npm run start' in a screen/tmux session)."
 echo "Ensure your .env file is correctly configured in the project root."
-
