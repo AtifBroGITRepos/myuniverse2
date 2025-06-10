@@ -7,10 +7,15 @@ This guide provides step-by-step instructions to set up and deploy your "Atif's 
 
 *   **Node.js:** Version 18.x or later recommended.
 *   **npm** or **yarn:** Package manager for Node.js.
+*   **Git (optional):** If you plan to pull code directly onto the server.
 
 ## 1. Get the Code
 
 Clone or download the project repository to your local machine or server.
+```bash
+git clone <your-repository-url>
+cd atifs-universe # Or your project directory name
+```
 
 ## 2. Configuration (`.env` File)
 
@@ -58,7 +63,39 @@ SYSTEM_ALERT_EMAILS=alert1@example.com,alert2@example.com # Optional, for critic
 *   The `.env` file should **never** be committed to your Git repository if it contains sensitive credentials. Ensure your `.gitignore` file includes `.env`.
 *   Most hosting platforms (Vercel, Netlify, AWS, Firebase App Hosting, etc.) provide a way to set environment variables through their dashboard or CLI. This is generally the **recommended and more secure method for production deployments** instead of using a physical `.env` file. The variable names (e.g., `SMTP_HOST`, `GOOGLE_API_KEY`) remain the same.
 
-## 3. Install Dependencies
+## 3. Install Dependencies, Build, and Run
+
+You have two main ways to proceed:
+
+### Option A: Using the Deployment Script (Recommended for Repeat Deployments)
+
+A `deploy.sh` script is included in the project root to automate these steps.
+
+1.  **Make the script executable:**
+    ```bash
+    chmod +x deploy.sh
+    ```
+2.  **(Optional) Customize the script:**
+    Open `deploy.sh` in a text editor. You can:
+    *   Set `AUTO_PULL_GIT=true` or `false`.
+    *   Change `GIT_BRANCH` if needed.
+    *   Choose between `npm` or `yarn` commands.
+    *   Uncomment and configure PM2 commands if you use PM2.
+3.  **Run the script:**
+    ```bash
+    ./deploy.sh
+    ```
+    The script will:
+    *   Optionally pull the latest code from Git.
+    *   Install production dependencies.
+    *   Build the Next.js application.
+    *   Provide guidance on starting the application (with commented-out PM2 examples).
+
+### Option B: Manual Steps
+
+If you prefer to run commands manually:
+
+#### a. Install Dependencies
 
 If you haven't already (e.g., for a fresh server setup), navigate to the project directory on your server and install the necessary dependencies:
 
@@ -69,7 +106,7 @@ yarn install --production
 ```
 Using the `--production` flag (or similar, depending on your package manager and workflow) can help skip development-only dependencies if desired for a lean production environment.
 
-## 4. Build the Project
+#### b. Build the Project
 
 Create an optimized production build of your Next.js application:
 
@@ -79,7 +116,7 @@ npm run build
 yarn build
 ```
 
-## 5. Run the Application
+#### c. Run the Application
 
 Start the Next.js production server:
 
@@ -92,13 +129,16 @@ By default, this usually runs on port 3000 (for Next.js default). Your hosting p
 
 For robust production deployments, consider using a process manager like PM2:
 ```bash
+# Example: Ensure PM2 is installed globally: npm install pm2 -g
 pm2 start npm --name "atifs-universe" -- run start
-# Or if your start script uses a specific port (e.g., PORT=9002 npm run start)
+# Or if your start script uses a specific port (e.g., PORT=9002 npm run start defined in package.json)
 # pm2 start npm --name "atifs-universe" -- run start -- --port 9002
+# To check status: pm2 list
+# To view logs: pm2 logs atifs-universe
 ```
 Refer to PM2 documentation for more advanced configurations.
 
-## 6. Admin Panel & Content Management
+## 4. Admin Panel & Content Management
 
 Your portfolio content (About, Services, Projects, Testimonials, Navigation, Email Templates) is managed via the Admin Panel.
 
@@ -109,25 +149,25 @@ Your portfolio content (About, Services, Projects, Testimonials, Navigation, Ema
     1.  Edit and save content in the Admin Panel (this saves it to your browser's localStorage).
     2.  To make these changes the default for all users of the website, you must **manually copy** the updated data structures (e.g., the JavaScript arrays/objects for services, projects). You can usually inspect localStorage via your browser's developer tools to get this data.
     3.  Paste this data into the corresponding variables in the `src/data/constants.ts` file in your project code.
-    4.  Re-build and re-deploy your application (`npm run build` then restart your server).
+    4.  Re-build and re-deploy your application (run `./deploy.sh` or manual build/restart steps).
 *   **Email Templates:**
     1.  Design email templates in the Admin Panel ("Email Templates" tab). This saves to your browser's `localStorage`.
     2.  To use these templates for actual system emails sent by the server, you must **manually copy the HTML** from the admin panel's textareas.
     3.  Paste this HTML into the corresponding string variables (e.g., `userHtmlTemplate`, `adminHtmlTemplate` variants) in the `src/app/actions/send-inquiry-email.ts` file.
     4.  Re-build and re-deploy your application.
 
-## 7. Email Functionality (SMTP)
+## 5. Email Functionality (SMTP)
 
 *   Ensure all `SMTP_*` variables and `EMAIL_FROM`, `ADMIN_EMAIL`, `SYSTEM_ALERT_EMAILS` in your `.env` file (or hosting provider's environment variables) are correctly configured as per your email provider's details.
 *   Incorrect SMTP settings are the most common cause of email sending failures. Double-check host, port, user, password, and secure (SSL/TLS) settings.
-*   For better email deliverability and to avoid spam filters, ensure your sending domain (e.g., `flasheer.net` or your custom domain associated with `EMAIL_FROM`) has proper **SPF** and **DKIM** DNS records configured to authorize your SMTP relay service. A **DMARC** record is also recommended.
+*   For better email deliverability and to avoid spam filters, ensure your sending domain (e.g., your custom domain associated with `EMAIL_FROM`) has proper **SPF** and **DKIM** DNS records configured to authorize your SMTP relay service. A **DMARC** record is also recommended.
 
-## 8. AI Features (Genkit)
+## 6. AI Features (Genkit)
 
 *   AI-powered features (summaries, content generation, skill explanations, AI email composition) require a valid `GOOGLE_API_KEY` to be set in your environment variables.
 *   Ensure the Google AI (Generative Language API) is enabled for your Google Cloud project associated with this API key and that your project has billing enabled.
 
-## 9. Development Server for Genkit (Optional)
+## 7. Development Server for Genkit (Optional)
 
 If you need to run Genkit flows in a local development environment (separate from the main Next.js dev server, perhaps for testing flows directly):
 ```bash
@@ -140,5 +180,3 @@ This uses `src/ai/dev.ts` to start the Genkit development server.
 ---
 
 This guide should help you get "Atif's Universe" up and running. If you encounter issues, check your server logs (especially for SMTP or AI API errors), your `.env` configuration, and your SMTP provider settings.
-
-    
