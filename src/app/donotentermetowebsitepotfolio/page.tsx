@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { 
+import {
   ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
@@ -22,7 +23,7 @@ import {
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
-import { summarizeSingleMessage, type SummarizeSingleMessageInput } from '@/ai/flows/summarize-single-message-flow'; 
+import { summarizeSingleMessage, type SummarizeSingleMessageInput } from '@/ai/flows/summarize-single-message-flow';
 import { generateHeroText, type GenerateHeroTextInput } from '@/ai/flows/generate-hero-text-flow';
 import { generateServiceItem, type GenerateServiceItemInput } from '@/ai/flows/generate-service-item-flow';
 import { generateProjectHighlight, type GenerateProjectHighlightInput } from '@/ai/flows/generate-project-highlight-flow';
@@ -32,7 +33,7 @@ import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
@@ -86,7 +87,7 @@ function AboutEditor() {
       setIsAiLoading(false);
     }
   };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -129,11 +130,11 @@ function ServicesEditor() {
         setServices(JSON.parse(storedServices));
       } catch (e) {
         console.error("Error parsing services from localStorage", e);
-        setServices(SERVICES_DATA); 
+        setServices(SERVICES_DATA);
         toast({ title: "Load Error", description: "Could not load saved services, reset to default.", variant: "destructive" });
       }
     } else {
-      setServices(SERVICES_DATA); 
+      setServices(SERVICES_DATA);
     }
   }, [toast]);
 
@@ -142,7 +143,7 @@ function ServicesEditor() {
     updatedServices[index] = { ...updatedServices[index], [field]: value };
     setServices(updatedServices);
   };
-  
+
   const handleIconChange = (index: number, value: ServiceIconName) => {
     const updatedServices = [...services];
     updatedServices[index] = { ...updatedServices[index], iconName: value };
@@ -241,18 +242,31 @@ function ProjectsEditor() {
     const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
     if (storedProjects) {
       try {
-        setProjects(JSON.parse(storedProjects));
+        const parsedProjects = JSON.parse(storedProjects).map((p: Project) => ({
+          ...p,
+          showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+          showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+        }));
+        setProjects(parsedProjects);
       } catch (e) {
         console.error("Error parsing projects from localStorage", e);
-        setProjects(PROJECTS_DATA);
+        setProjects(PROJECTS_DATA.map(p => ({
+            ...p,
+            showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+            showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+        })));
         toast({ title: "Load Error", description: "Could not load saved projects, reset to default.", variant: "destructive" });
       }
     } else {
-      setProjects(PROJECTS_DATA);
+      setProjects(PROJECTS_DATA.map(p => ({
+        ...p,
+        showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+        showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+      })));
     }
   }, [toast]);
 
-  const handleProjectChange = (index: number, field: keyof Project, value: string | string[]) => {
+  const handleProjectChange = (index: number, field: keyof Project, value: string | string[] | boolean) => {
     const updatedProjects = [...projects];
     updatedProjects[index] = { ...updatedProjects[index], [field]: value };
     setProjects(updatedProjects);
@@ -269,18 +283,20 @@ function ProjectsEditor() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleAddProject = () => {
-    setProjects([...projects, { 
-      id: `project-${Date.now()}`, 
-      title: '', 
-      description: '', 
-      longDescription: '', 
-      imageUrl: 'https://placehold.co/600x400.png', 
-      tags: [], 
+    setProjects([...projects, {
+      id: `project-${Date.now()}`,
+      title: '',
+      description: '',
+      longDescription: '',
+      imageUrl: 'https://placehold.co/600x400.png',
+      tags: [],
       imageHint: 'new project',
       liveUrl: '',
-      sourceUrl: ''
+      showLiveUrlButton: true,
+      sourceUrl: '',
+      showSourceUrlButton: true,
     }]);
     toast({ title: "Project Added", description: "A new project template has been added. Remember to save." });
   };
@@ -296,7 +312,12 @@ function ProjectsEditor() {
   };
 
   const handleReset = () => {
-    setProjects(PROJECTS_DATA);
+    const defaultProjectsWithToggles = PROJECTS_DATA.map(p => ({
+        ...p,
+        showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+        showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+    }));
+    setProjects(defaultProjectsWithToggles);
     localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY);
     toast({ title: "Reset Successful", description: "Projects data reset to default." });
   };
@@ -305,7 +326,7 @@ function ProjectsEditor() {
      <Card className="w-full">
       <CardHeader>
         <CardTitle>Projects Editor</CardTitle>
-        <CardDescription>Edit project details. Images are saved as Data URIs in local storage.</CardDescription>
+        <CardDescription>Edit project details. Images are saved as Data URIs in local storage. Toggle visibility of Live Demo and Source buttons.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {projects.map((project, index) => (
@@ -327,7 +348,7 @@ function ProjectsEditor() {
               <Input id={`project-imageurl-${index}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(index, e)} className="bg-input"/>
               <p className="text-xs text-muted-foreground mt-1">
                 <Crop className="inline-block h-3 w-3 mr-1" />
-                Recommended: 16:9 aspect ratio (e.g., 600x338). Full cropping feature not yet implemented.
+                Recommended: 16:9 aspect ratio (e.g., 600x338).
               </p>
               {project.imageUrl && (
                 <div className="mt-2 relative w-full aspect-video max-w-xs">
@@ -343,14 +364,33 @@ function ProjectsEditor() {
               <Label htmlFor={`project-tags-${index}`}>Tags (comma-separated)</Label>
               <Input id={`project-tags-${index}`} value={project.tags.join(', ')} onChange={(e) => handleProjectChange(index, 'tags', e.target.value.split(',').map(tag => tag.trim()))} className="bg-input"/>
             </div>
-            <div>
-              <Label htmlFor={`project-live-${index}`}>Live URL</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor={`project-live-${index}`}>Live Demo URL</Label>
               <Input id={`project-live-${index}`} value={project.liveUrl || ''} onChange={(e) => handleProjectChange(index, 'liveUrl', e.target.value)} className="bg-input"/>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id={`project-showLive-${index}`}
+                  checked={project.showLiveUrlButton}
+                  onCheckedChange={(checked) => handleProjectChange(index, 'showLiveUrlButton', Boolean(checked))}
+                />
+                <Label htmlFor={`project-showLive-${index}`} className="text-sm font-normal">Show Live Demo Button</Label>
+              </div>
             </div>
-            <div>
-              <Label htmlFor={`project-source-${index}`}>Source URL</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor={`project-source-${index}`}>Source Code URL</Label>
               <Input id={`project-source-${index}`} value={project.sourceUrl || ''} onChange={(e) => handleProjectChange(index, 'sourceUrl', e.target.value)} className="bg-input"/>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id={`project-showSource-${index}`}
+                  checked={project.showSourceUrlButton}
+                  onCheckedChange={(checked) => handleProjectChange(index, 'showSourceUrlButton', Boolean(checked))}
+                />
+                <Label htmlFor={`project-showSource-${index}`} className="text-sm font-normal">Show Source Code Button</Label>
+              </div>
             </div>
+
             <Button variant="destructive" size="sm" onClick={() => handleRemoveProject(index)} className="mt-3">
               <Trash2 className="mr-2 h-4 w-4" /> Remove Project
             </Button>
@@ -464,7 +504,7 @@ function TestimonialsEditor() {
               <Input id={`testimonial-avatar-${index}`} type="file" accept="image/*" onChange={(e) => handleAvatarFileChange(index, e)} className="bg-input"/>
                <p className="text-xs text-muted-foreground mt-1">
                 <Crop className="inline-block h-3 w-3 mr-1" />
-                Recommended: 1:1 aspect ratio (e.g., 100x100). Full cropping feature not yet implemented.
+                Recommended: 1:1 aspect ratio (e.g., 100x100).
               </p>
               {testimonial.avatarUrl && (
                 <div className="mt-2 relative w-24 h-24">
@@ -601,7 +641,7 @@ function HeaderNavEditor() {
     updatedNavItems[index] = { ...updatedNavItems[index], [field]: value };
     setNavItems(updatedNavItems);
   };
-  
+
   const handleSave = () => {
     localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
     toast({ title: "Success!", description: "Header navigation items saved to local storage." });
@@ -612,7 +652,7 @@ function HeaderNavEditor() {
     localStorage.removeItem(LOCALSTORAGE_HEADER_NAV_KEY);
     toast({ title: "Reset Successful", description: "Header navigation items reset to default." });
   };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -624,19 +664,19 @@ function HeaderNavEditor() {
           <Card key={`navitem-${index}`} className="p-4 bg-secondary/20 space-y-3">
             <div>
               <Label htmlFor={`navitem-name-${index}`}>Item Name</Label>
-              <Input 
-                id={`navitem-name-${index}`} 
-                value={item.name} 
-                onChange={(e) => handleNavItemChange(index, 'name', e.target.value)} 
+              <Input
+                id={`navitem-name-${index}`}
+                value={item.name}
+                onChange={(e) => handleNavItemChange(index, 'name', e.target.value)}
                 className="bg-input"
               />
             </div>
             <div>
               <Label htmlFor={`navitem-href-${index}`}>Link (href)</Label>
-              <Input 
-                id={`navitem-href-${index}`} 
-                value={item.href} 
-                onChange={(e) => handleNavItemChange(index, 'href', e.target.value)} 
+              <Input
+                id={`navitem-href-${index}`}
+                value={item.href}
+                onChange={(e) => handleNavItemChange(index, 'href', e.target.value)}
                 className="bg-input"
                 placeholder="e.g., #about or /blog"
               />
@@ -660,8 +700,8 @@ function MessagesManager() {
   const [isLoadingOverallSummary, setIsLoadingOverallSummary] = useState(false);
   const { toast } = useToast();
 
-  const [isLoadingIndividualSummary, setIsLoadingIndividualSummary] = useState<string | null>(null); 
-  const [individualSummaries, setIndividualSummaries] = useState<Record<string, string>>({}); 
+  const [isLoadingIndividualSummary, setIsLoadingIndividualSummary] = useState<string | null>(null);
+  const [individualSummaries, setIndividualSummaries] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
@@ -695,9 +735,9 @@ function MessagesManager() {
       id: `msg-${Date.now()}`,
       receivedAt: new Date().toISOString(),
     };
-    const updatedMessages = [messageToAdd, ...messages]; 
+    const updatedMessages = [messageToAdd, ...messages];
     handleSaveMessages(updatedMessages);
-    setNewMessage({ name: '', email: '', message: '' }); 
+    setNewMessage({ name: '', email: '', message: '' });
     toast({ title: "Message Added", description: "Mock message saved to local storage." });
   };
 
@@ -711,10 +751,10 @@ function MessagesManager() {
     });
     toast({ title: "Message Removed", variant: "default" });
   };
-  
+
   const handleClearAllMessages = () => {
     handleSaveMessages([]);
-    setOverallSummary(null); 
+    setOverallSummary(null);
     setIndividualSummaries({});
     toast({ title: "All Messages Cleared", description: "All mock messages have been removed from local storage.", variant: "default" });
   };
@@ -727,7 +767,7 @@ function MessagesManager() {
     setIsLoadingOverallSummary(true);
     setOverallSummary(null);
     try {
-      const input: SummarizeMessagesInput = { messages }; 
+      const input: SummarizeMessagesInput = { messages };
       const result = await summarizeMessages(input);
       setOverallSummary(result.summary);
       toast({ title: "AI Overall Summary Generated!", description: "Messages summarized successfully.", variant: "default" });
@@ -835,11 +875,11 @@ function MessagesManager() {
                     </Button>
                 </div>
                 <p className="mt-2 text-foreground whitespace-pre-wrap text-sm">{msg.message}</p>
-                
-                <Button 
-                    variant="outline" 
-                    size="xs" 
-                    onClick={() => handleSummarizeSingle(msg)} 
+
+                <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => handleSummarizeSingle(msg)}
                     disabled={isLoadingIndividualSummary === msg.id}
                     className="mt-3 text-xs"
                 >
@@ -1055,7 +1095,7 @@ function AIContentIdeasGenerator() {
           <h4 className="font-medium">Inputs for {blockType.replace('_', ' ').charAt(0).toUpperCase() + blockType.replace('_', ' ').slice(1)}:</h4>
           {renderInputs()}
         </div>
-        
+
         <Button onClick={handleGenerate} disabled={isLoading} className="w-full">
           <Sparkles className="mr-2 h-4 w-4" />
           {isLoading ? `Generating ${blockType.replace('_', ' ')}...` : `Generate ${blockType.replace('_', ' ').charAt(0).toUpperCase() + blockType.replace('_', ' ').slice(1)}`}
@@ -1126,7 +1166,7 @@ function SmtpConfigViewer() {
 function AdminMailSender() {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
-  const [body, setBody] = useState(''); 
+  const [body, setBody] = useState('');
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
@@ -1149,10 +1189,10 @@ function AdminMailSender() {
         lengthHint: aiLength,
       };
       const result = await generateEmailContent(input);
-      setBody(result.suggestedHtmlBody); 
+      setBody(result.suggestedHtmlBody);
       toast({ title: "AI Email Content Generated!", description: "The email body has been updated." });
-      setIsAiDialogOpen(false); 
-      setAiUserPrompt(''); 
+      setIsAiDialogOpen(false);
+      setAiUserPrompt('');
     } catch (error) {
       console.error("Error generating email content with AI:", error);
       toast({ title: "AI Error", description: "Could not generate email content. Please try again.", variant: "destructive" });
@@ -1170,7 +1210,7 @@ function AdminMailSender() {
     }
     setIsSending(true);
     try {
-      const result = await sendAdminComposedEmail({ to, subject, htmlBody: body }); 
+      const result = await sendAdminComposedEmail({ to, subject, htmlBody: body });
       if (result.success) {
         toast({ title: "Email Sent!", description: `Successfully sent email to ${to}.` });
         setTo('');
@@ -1199,25 +1239,25 @@ function AdminMailSender() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="mail-to">To:</Label>
-            <Input 
-              id="mail-to" 
-              type="email" 
-              value={to} 
-              onChange={(e) => setTo(e.target.value)} 
-              placeholder="recipient@example.com" 
-              required 
+            <Input
+              id="mail-to"
+              type="email"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="recipient@example.com"
+              required
               className="bg-input"
             />
           </div>
           <div>
             <Label htmlFor="mail-subject">Subject:</Label>
-            <Input 
-              id="mail-subject" 
-              type="text" 
-              value={subject} 
-              onChange={(e) => setSubject(e.target.value)} 
-              placeholder="Email Subject" 
-              required 
+            <Input
+              id="mail-subject"
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Email Subject"
+              required
               className="bg-input"
             />
           </div>
@@ -1288,13 +1328,13 @@ function AdminMailSender() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Textarea 
-              id="mail-body" 
-              value={body} 
-              onChange={(e) => setBody(e.target.value)} 
-              placeholder="Type your HTML message here, or use AI to compose..." 
-              rows={10} 
-              required 
+            <Textarea
+              id="mail-body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Type your HTML message here, or use AI to compose..."
+              rows={10}
+              required
               className="bg-input font-mono text-xs"
             />
             <p className="text-xs text-muted-foreground mt-1">Enter raw HTML. Use &lt;br/&gt; for line breaks. AI generator will also produce HTML.</p>
@@ -1321,7 +1361,7 @@ function EmailTemplatesEditor() {
         setTemplates(JSON.parse(storedTemplates));
       } catch (e) {
         console.error("Error parsing email templates from localStorage", e);
-        setTemplates(DEFAULT_EMAIL_TEMPLATES); 
+        setTemplates(DEFAULT_EMAIL_TEMPLATES);
         toast({ title: "Load Error", description: "Could not load saved email templates, reset to default from constants.ts.", variant: "destructive" });
       }
     } else {
@@ -1339,7 +1379,7 @@ function EmailTemplatesEditor() {
   };
 
   const handleReset = () => {
-    setTemplates(DEFAULT_EMAIL_TEMPLATES); 
+    setTemplates(DEFAULT_EMAIL_TEMPLATES);
     localStorage.removeItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
     toast({ title: "Reset Successful", description: "Email templates reset to default values (from constants.ts)." });
   };
@@ -1634,7 +1674,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('adminAuthenticated');
-    setSecretKey(''); 
+    setSecretKey('');
     toast({title: "Logged Out", description: "You have been logged out of the admin panel."});
   }
 

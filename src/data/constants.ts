@@ -11,7 +11,9 @@ export interface Project {
   imageUrl: string; // Can be a URL or a Data URI for local admin edits
   tags: string[];
   liveUrl?: string;
+  showLiveUrlButton?: boolean;
   sourceUrl?: string;
+  showSourceUrlButton?: boolean;
   imageHint?: string;
 }
 
@@ -25,7 +27,9 @@ export const PROJECTS_DATA: Project[] = [
     imageHint: 'online shopping',
     tags: ['Next.js', 'TypeScript', 'E-commerce', 'Stripe'],
     liveUrl: '#',
+    showLiveUrlButton: true,
     sourceUrl: '#',
+    showSourceUrlButton: true,
   },
   {
     id: 'project-2',
@@ -36,6 +40,8 @@ export const PROJECTS_DATA: Project[] = [
     imageHint: 'charts graphs',
     tags: ['React', 'D3.js', 'Node.js', 'SaaS'],
     liveUrl: '#',
+    showLiveUrlButton: true,
+    showSourceUrlButton: false, // Example: Source not available or not shown
   },
   {
     id: 'project-3',
@@ -46,6 +52,8 @@ export const PROJECTS_DATA: Project[] = [
     imageHint: 'artificial intelligence',
     tags: ['Vue.js', 'Python', 'AI', 'OpenAI', 'Prompt Engineering'],
     sourceUrl: '#',
+    showSourceUrlButton: true,
+    showLiveUrlButton: false, // Example: No live demo for this
   },
    {
     id: 'project-4',
@@ -56,6 +64,9 @@ export const PROJECTS_DATA: Project[] = [
     imageHint: 'mobile app health',
     tags: ['React Native', 'Mobile', 'HealthTech', 'Firebase'],
     liveUrl: '#',
+    showLiveUrlButton: true,
+    sourceUrl: '', // Example: No source URL
+    showSourceUrlButton: true, // But toggle is still there
   },
 ];
 
@@ -100,9 +111,9 @@ export const TESTIMONIALS_DATA: Testimonial[] = [
 ];
 
 export const KEY_SKILLS: string[] = [
-  "Full-Stack Development", "UI/UX Design", "Professional Graphics Designer", "Freelancer", "Creative Thinker", "React", "Next.js", "Node.js", 
-  "Python", "TypeScript", "JavaScript", "Tailwind CSS", "ShadCN UI", 
-  "Genkit", "Prompt Engineering", "Firebase", "PostgreSQL", "API Integration", 
+  "Full-Stack Development", "UI/UX Design", "Professional Graphics Designer", "Freelancer", "Creative Thinker", "React", "Next.js", "Node.js",
+  "Python", "TypeScript", "JavaScript", "Tailwind CSS", "ShadCN UI",
+  "Genkit", "Prompt Engineering", "Firebase", "PostgreSQL", "API Integration",
   "Mobile Development (React Native)", "Agile Methodologies"
 ];
 
@@ -112,7 +123,7 @@ export interface Service {
   id: string;
   title: string;
   description: string;
-  iconName: ServiceIconName; 
+  iconName: ServiceIconName;
 }
 
 export const SERVICES_DATA: Service[] = [
@@ -344,3 +355,4 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
+

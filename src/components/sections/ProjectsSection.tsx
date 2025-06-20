@@ -75,8 +75,8 @@ function ProjectCard({ project }: ProjectCardProps) {
     try {
       const input: SuggestProjectIdeasInput = {
         businessNeeds: inquiryProjectIdea,
-        atifPortfolio: ATIF_PORTFOLIO_DESCRIPTION, 
-        projectContext: project.title, 
+        atifPortfolio: ATIF_PORTFOLIO_DESCRIPTION,
+        projectContext: project.title,
       };
       const result = await suggestProjectIdeas(input);
       setAiGeneratedIdeas(result.projectIdeas);
@@ -111,14 +111,14 @@ function ProjectCard({ project }: ProjectCardProps) {
     const inquiryDataForAction = {
       name: inquiryName,
       email: inquiryEmail,
-      message: `Service Inquiry for project: "${project.title}"`, 
+      message: `Service Inquiry for project: "${project.title}"`,
       type: 'Project Service Inquiry' as const,
       projectTitle: project.title,
       clientProjectIdea: inquiryProjectIdea,
       aiGeneratedIdeas: aiGeneratedIdeas,
       messageSummary: messageSummaryForEmail, // Pass the summary
     };
-    
+
     const combinedMessageForAdminPanel = `
 Service Inquiry regarding project: "${project.title}"
 Client's Project Idea/Requirements:
@@ -153,7 +153,7 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
       setInquiryEmail('');
       setInquiryProjectIdea('');
       setAiGeneratedIdeas(null);
-      setIsServiceModalOpen(false); 
+      setIsServiceModalOpen(false);
 
       if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
         console.warn("Admin email failed to send for service inquiry. Details:", emailResult.adminEmailError);
@@ -210,14 +210,14 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center flex-wrap">
           <div className="flex gap-2 flex-wrap">
-            {project.liveUrl && (
+            {(project.showLiveUrlButton === undefined || project.showLiveUrlButton) && project.liveUrl && (
               <Button variant="outline" size="sm" asChild className="border-primary text-primary hover:bg-primary/10">
                 <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" /> Live Demo
                 </a>
               </Button>
             )}
-            {project.sourceUrl && (
+            {(project.showSourceUrlButton === undefined || project.showSourceUrlButton) && project.sourceUrl && (
               <Button variant="outline" size="sm" asChild className="border-primary text-primary hover:bg-primary/10">
                 <a href={project.sourceUrl} target="_blank" rel="noopener noreferrer">
                   <Github className="mr-2 h-4 w-4" /> Source
@@ -225,7 +225,7 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
               </Button>
             )}
           </div>
-          
+
           <div className="flex gap-2 flex-wrap mt-2 sm:mt-0">
             <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
               <DialogTrigger asChild>
@@ -359,7 +359,7 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
             Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design.
           </p>
         </ScrollAnimationWrapper>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {projects.map((project, index) => (
             <ProjectCard key={project.id} project={project} />
