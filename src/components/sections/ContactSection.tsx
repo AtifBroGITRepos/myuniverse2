@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,37 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
-import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow'; // Import summarizer
-import { Send, Mail, Phone, MapPin, Sparkles } from 'lucide-react';
-import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage } from '@/data/constants';
+import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow'; 
+import { Send, Mail, MapPin, MessageSquare, Sparkles } from 'lucide-react'; // Changed Phone to MessageSquare
+import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage, CONTACT_INFO, LOCALSTORAGE_CONTACT_KEY, type ContactDetails } from '@/data/constants';
 
 
 export function ContactSection() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentContactInfo, setCurrentContactInfo] = useState<ContactDetails>(CONTACT_INFO);
+
+  useEffect(() => {
+    const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
+    if (storedContactInfo) {
+      try {
+        const parsedInfo: ContactDetails = JSON.parse(storedContactInfo);
+        // Basic validation to ensure it's somewhat like ContactDetails
+        if (parsedInfo && parsedInfo.email && parsedInfo.whatsappNumber && parsedInfo.socials) {
+            setCurrentContactInfo(parsedInfo);
+        } else {
+            setCurrentContactInfo(CONTACT_INFO); // Fallback if structure is off
+        }
+      } catch (error) {
+        console.error("Error parsing contact info from localStorage for ContactSection", error);
+        setCurrentContactInfo(CONTACT_INFO); // Fallback on error
+      }
+    } else {
+        setCurrentContactInfo(CONTACT_INFO); // Fallback if not in localStorage
+    }
+  }, []);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,16 +62,14 @@ export function ContactSection() {
       }
     } catch (summaryError) {
       console.warn("AI summary generation failed for contact form:", summaryError);
-      // Do not block submission if summary fails
     }
     
     const inquiryDataForAction = {
       ...formData,
       type: 'General Contact' as const,
-      messageSummary: messageSummaryForEmail, // Pass the summary
+      messageSummary: messageSummaryForEmail, 
     };
 
-    // Save to localStorage (for admin panel message viewing)
     const originalMessageForAdminPanel: AdminMessage = {
       id: `contact-${Date.now()}`,
       name: formData.name,
@@ -60,22 +80,21 @@ export function ContactSection() {
     try {
       const storedMessages = localStorage.getItem(LOCALSTORAGE_MESSAGES_KEY);
       const messages: AdminMessage[] = storedMessages ? JSON.parse(storedMessages) : [];
-      messages.push(originalMessageForAdminPanel); // Add to the beginning (or end if preferred)
-      messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()); // Re-sort after adding
+      messages.push(originalMessageForAdminPanel); 
+      messages.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()); 
       localStorage.setItem(LOCALSTORAGE_MESSAGES_KEY, JSON.stringify(messages));
     } catch (error) {
       console.error('Error saving contact message to localStorage:', error);
     }
 
-    // Attempt to send emails
     const emailResult = await sendInquiryEmails(inquiryDataForAction);
 
-    if (emailResult.success || emailResult.adminEmailFailed) { // Consider success if user email sent, even if admin failed
+    if (emailResult.success || emailResult.adminEmailFailed) { 
       toast({
         title: "Message Sent!",
         description: "We've received your message and will reply to you soon.",
       });
-      setFormData({ name: '', email: '', message: '' }); // Clear form
+      setFormData({ name: '', email: '', message: '' }); 
 
       if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
         console.warn("Admin email failed to send for general contact. Details:", emailResult.adminEmailError);
@@ -106,10 +125,14 @@ export function ContactSection() {
     setIsSubmitting(false);
   };
 
-  const contactInfo = [
-    { icon: Mail, text: "atif.codes@example.com", href: "mailto:atif.codes@example.com" },
-    { icon: Phone, text: "+1 (555) 123-4567", href: "tel:+15551234567" },
-    { icon: MapPin, text: "Cyberjaya, Malaysia" },
+  const contactItems = [
+    { icon: Mail, text: currentContactInfo.email, href: `mailto:${currentContactInfo.email}` },
+    { 
+      icon: MessageSquare, // Changed from Phone
+      text: `WhatsApp: ${currentContactInfo.whatsappNumber}`, // Updated text
+      href: `https://wa.me/${currentContactInfo.whatsappNumber.replace(/[^0-9]/g, '')}` // Ensure only numbers for wa.me link
+    },
+    { icon: MapPin, text: currentContactInfo.location },
   ];
 
   return (
@@ -128,11 +151,11 @@ export function ContactSection() {
           <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="100ms">
             <div className="bg-card p-8 rounded-lg shadow-xl space-y-6">
               <h3 className="text-2xl font-semibold text-foreground mb-6">Contact Information</h3>
-              {contactInfo.map((info, index) => (
+              {contactItems.map((info, index) => (
                 <div key={index} className="flex items-start space-x-4">
                   <info.icon className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
                   {info.href ? (
-                    <a href={info.href} className="text-muted-foreground hover:text-primary transition-colors">
+                    <a href={info.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                       {info.text}
                     </a>
                   ) : (
@@ -201,4 +224,3 @@ export function ContactSection() {
     </section>
   );
 }
-

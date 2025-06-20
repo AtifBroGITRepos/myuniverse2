@@ -19,7 +19,8 @@ import {
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY, LOCALSTORAGE_PROJECTS_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
-  type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
+  type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -36,9 +37,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff, ExternalLink, View, ImagePlus, XCircle } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
-const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
-const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
-const LOCALSTORAGE_CONTACT_KEY = "admin_contact_info";
 
 
 function AboutEditor() {
@@ -316,7 +314,7 @@ function ProjectsEditor() {
     const updatedProjects = [...projects];
     let projectImages = [...(updatedProjects[projIndex].images || [])];
     projectImages.splice(imgIndex, 1);
-    if (projectImages.length === 0) { // Ensure at least one placeholder if all removed
+    if (projectImages.length === 0) { 
         projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
     }
     updatedProjects[projIndex].images = projectImages;
@@ -590,7 +588,13 @@ function ContactEditor() {
     const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
     if (storedContactInfo) {
        try {
-        setContactInfo(JSON.parse(storedContactInfo));
+        const parsedInfo = JSON.parse(storedContactInfo);
+        // Ensure the loaded data has the new whatsappNumber field
+        if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
+            parsedInfo.whatsappNumber = parsedInfo.phone;
+            delete parsedInfo.phone;
+        }
+        setContactInfo(parsedInfo);
       } catch (e) {
         console.error("Error parsing contact info from localStorage", e);
         setContactInfo(CONTACT_INFO);
@@ -636,8 +640,14 @@ function ContactEditor() {
           <Input id="contact-email" value={contactInfo.email} onChange={e => handleChange('email', e.target.value)} className="bg-input"/>
         </div>
         <div>
-          <Label htmlFor="contact-phone">Phone</Label>
-          <Input id="contact-phone" value={contactInfo.phone} onChange={e => handleChange('phone', e.target.value)} className="bg-input"/>
+          <Label htmlFor="contact-whatsapp">WhatsApp Number</Label>
+          <Input 
+            id="contact-whatsapp" 
+            value={contactInfo.whatsappNumber} 
+            onChange={e => handleChange('whatsappNumber', e.target.value)} 
+            className="bg-input"
+            placeholder="e.g., 15551234567 (country code + number)"
+          />
         </div>
         <div>
           <Label htmlFor="contact-location">Location</Label>
@@ -1490,9 +1500,8 @@ function EmailTemplatesEditor() {
               <li>Redeploy your application for the changes to take effect on the server.</li>
             </ol>
             This editor helps you design and manage the templates locally before updating the server code. The default templates here are now in sync with `send-inquiry-email.ts`.
-          </div>
-        </CardDescription>
-      </CardHeader>
+          </CardDescription>
+        </CardHeader>
       <CardContent className="space-y-8">
         <div>
           <h4 className="font-medium text-lg mb-2">Available Placeholders:</h4>
@@ -1801,4 +1810,3 @@ export default function AdminPage() {
   );
 }
 
-    

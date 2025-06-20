@@ -170,7 +170,7 @@ export const SERVICES_DATA: Service[] = [
 
 export interface ContactDetails {
   email: string;
-  phone: string;
+  whatsappNumber: string; // Changed from phone
   location: string;
   socials: {
     github: string;
@@ -180,7 +180,7 @@ export interface ContactDetails {
 }
 export const CONTACT_INFO: ContactDetails = {
   email: "atif.codes@example.com",
-  phone: "+1 (555) 123-4567",
+  whatsappNumber: "15551234567", // Example: country code + number, no symbols for wa.me link
   location: "Cyberjaya, Malaysia",
   socials: {
     github: "https://github.com/atif",
@@ -214,11 +214,13 @@ export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
   { name: 'Contact', href: '/#contact' },
 ];
 
+export const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
 export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
 export const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data"; 
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
+export const LOCALSTORAGE_CONTACT_KEY = "admin_contact_info";
 export const LOCALSTORAGE_EMAIL_TEMPLATES_KEY = "admin_email_templates";
 export const LOCALSTORAGE_SITE_INFO_KEY = "admin_site_info";
 
@@ -369,3 +371,4 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
+
