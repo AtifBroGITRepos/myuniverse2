@@ -403,7 +403,8 @@ function ProjectsEditor() {
                 </Card>
               ))}
               <Button variant="outline" size="sm" onClick={() => handleAddImageToProject(projIndex)}>
-                <ImagePlus className="mr-2 h-4 w-4"/> Add Another Image
+                <ImagePlus className="mr-2 h-4 w-4"/>
+                {(project.images || []).length === 0 ? 'Add Image' : 'Add Another Image'}
               </Button>
             </div>
             
@@ -1799,3 +1800,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
