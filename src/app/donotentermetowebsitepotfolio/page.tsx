@@ -20,7 +20,7 @@ import {
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
-  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, LOCALSTORAGE_SERVICES_KEY as ADMIN_SERVICES_LOCALSTORAGE_KEY // Added explicit alias
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, LOCALSTORAGE_SERVICES_KEY as ADMIN_SERVICES_LOCALSTORAGE_KEY
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -60,7 +60,7 @@ function AboutEditor() {
     setAboutText(ATIF_PORTFOLIO_DESCRIPTION);
     localStorage.removeItem(LOCALSTORAGE_ABOUT_KEY);
     toast({ title: "Reset Successful", description: "About Me text reset to default." });
-  }
+  };
 
   const handleGenerateWithAI = async () => {
     setIsAiLoading(true);
@@ -248,17 +248,14 @@ function ProjectsEditor() {
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
         initialProjects = storedProjects.map(p => {
-          // Migration logic for old single image structure
           let currentImages = p.images || [];
           if (p.imageUrl && (!p.images || p.images.length === 0)) {
               currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
           }
-          // Ensure there's at least one placeholder image if array is empty after migration check
           if (currentImages.length === 0) {
               currentImages = [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }];
           }
           
-          // Remove deprecated fields after migration
           const { imageUrl, imageHint, ...restOfP } = p;
           
           return {
@@ -284,7 +281,7 @@ function ProjectsEditor() {
 
   const handleImageChange = (projIndex: number, imgIndex: number, field: keyof ProjectImage, value: string) => {
     const updatedProjects = [...projects];
-    const projectImages = [...(updatedProjects[projIndex].images || [])]; // Ensure images array exists
+    const projectImages = [...(updatedProjects[projIndex].images || [])];
     projectImages[imgIndex] = { ...projectImages[imgIndex], [field]: value };
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
@@ -315,7 +312,6 @@ function ProjectsEditor() {
     const updatedProjects = [...projects];
     let projectImages = [...(updatedProjects[projIndex].images || [])];
     projectImages.splice(imgIndex, 1);
-    // If all images are removed, add a default placeholder back
     if (projectImages.length === 0) {
         projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
     }
@@ -591,19 +587,18 @@ function ContactEditor() {
     if (storedContactInfo) {
        try {
         const parsedInfo = JSON.parse(storedContactInfo);
-        // Migration for old phone field
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
             parsedInfo.whatsappNumber = parsedInfo.phone;
-            delete parsedInfo.phone; // Remove old field
+            delete parsedInfo.phone; 
         }
         setContactInfo(parsedInfo);
       } catch (e) {
         console.error("Error parsing contact info from localStorage", e);
-        setContactInfo(CONTACT_INFO); // Fallback
+        setContactInfo(CONTACT_INFO); 
         toast({ title: "Load Error", description: "Could not load saved contact info, reset to default.", variant: "destructive" });
       }
     } else {
-      setContactInfo(CONTACT_INFO); // Default if nothing in localStorage
+      setContactInfo(CONTACT_INFO); 
     }
   }, [toast]);
 
@@ -1812,5 +1807,3 @@ export default function AdminPage() {
   );
 }
 
-
-    
