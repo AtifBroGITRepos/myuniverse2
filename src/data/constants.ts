@@ -3,17 +3,24 @@ import type { LucideIcon } from 'lucide-react';
 
 export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer, UI/UX enthusiast, and Professional Graphics Designer with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions, and is also available for Freelance projects.`;
 
+export interface ProjectImage {
+  url: string; // Can be a URL or a Data URI
+  hint?: string; // AI hint for this specific image
+}
+
 export interface Project {
   id: string;
   title: string;
   description: string;
   longDescription: string;
-  imageUrl: string; // Can be a URL or a Data URI for local admin edits
+  images: ProjectImage[]; // Changed from imageUrl
   tags: string[];
   liveUrl?: string;
   showLiveUrlButton?: boolean;
   sourceUrl?: string;
   showSourceUrlButton?: boolean;
+  // imageUrl and imageHint are deprecated but might exist in old localStorage data
+  imageUrl?: string; 
   imageHint?: string;
 }
 
@@ -23,8 +30,11 @@ export const PROJECTS_DATA: Project[] = [
     title: 'E-commerce Platform X',
     description: 'A cutting-edge e-commerce solution with advanced features.',
     longDescription: 'Developed a full-stack e-commerce platform with features like personalized recommendations, secure payment gateway integration (Stripe), and real-time inventory management. Built using Next.js, TypeScript, PostgreSQL, and Tailwind CSS. Focused on scalability and user experience, resulting in a 20% increase in conversion rates for the client.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'online shopping',
+    images: [
+      { url: 'https://placehold.co/800x450.png', hint: 'online shopping store' },
+      { url: 'https://placehold.co/800x450.png', hint: 'product page e-commerce' },
+      { url: 'https://placehold.co/800x450.png', hint: 'checkout process secure' },
+    ],
     tags: ['Next.js', 'TypeScript', 'E-commerce', 'Stripe'],
     liveUrl: '#',
     showLiveUrlButton: true,
@@ -36,37 +46,42 @@ export const PROJECTS_DATA: Project[] = [
     title: 'Data Analytics Dashboard',
     description: 'Interactive dashboard for visualizing complex datasets.',
     longDescription: 'Created an interactive data analytics dashboard for a SaaS company, enabling users to visualize key metrics and trends. Used React, D3.js, and Node.js with Express. The dashboard features customizable widgets, data filtering, and export functionalities. Improved data-driven decision-making for stakeholders.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'charts graphs',
+    images: [
+      { url: 'https://placehold.co/800x450.png', hint: 'charts graphs data' },
+      { url: 'https://placehold.co/800x450.png', hint: 'dashboard interface analytics' },
+    ],
     tags: ['React', 'D3.js', 'Node.js', 'SaaS'],
     liveUrl: '#',
     showLiveUrlButton: true,
-    showSourceUrlButton: false, // Example: Source not available or not shown
+    showSourceUrlButton: false,
   },
   {
     id: 'project-3',
     title: 'AI Content Generator',
     description: 'A web app that leverages AI to generate creative content.',
     longDescription: 'Built an AI-powered content generation tool that assists users in creating marketing copy, blog posts, and social media updates. Integrated with OpenAI API. The front-end was developed with Vue.js and the back-end with Python (Flask). Features included various content templates and tone adjustments.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'artificial intelligence',
+    images: [
+      { url: 'https://placehold.co/800x450.png', hint: 'artificial intelligence writing' },
+    ],
     tags: ['Vue.js', 'Python', 'AI', 'OpenAI', 'Prompt Engineering'],
     sourceUrl: '#',
     showSourceUrlButton: true,
-    showLiveUrlButton: false, // Example: No live demo for this
+    showLiveUrlButton: false, 
   },
    {
     id: 'project-4',
     title: 'Mobile Health Companion',
     description: 'A React Native app for tracking fitness and wellness.',
     longDescription: 'Designed and developed a cross-platform mobile application using React Native to help users track their fitness activities, set wellness goals, and receive personalized health tips. Integrated with HealthKit and Google Fit. Implemented features like progress charts, reminders, and a social sharing component.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'mobile app health',
+    images: [
+      { url: 'https://placehold.co/400x700.png', hint: 'mobile app health' },
+      { url: 'https://placehold.co/400x700.png', hint: 'fitness tracker interface' },
+    ],
     tags: ['React Native', 'Mobile', 'HealthTech', 'Firebase'],
     liveUrl: '#',
     showLiveUrlButton: true,
-    sourceUrl: '', // Example: No source URL
-    showSourceUrlButton: true, // But toggle is still there
+    sourceUrl: '', 
+    showSourceUrlButton: true,
   },
 ];
 
@@ -200,7 +215,7 @@ export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
 ];
 
 export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
-export const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data"; // Added export
+export const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data"; 
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
@@ -212,14 +227,14 @@ export interface SiteInfo {
   websiteName: string;
   defaultSeoTitle: string;
   defaultSeoDescription: string;
-  ogImageUrl?: string; // Optional Open Graph image URL
+  ogImageUrl?: string; 
 }
 
 export const DEFAULT_SITE_INFO: SiteInfo = {
   websiteName: "Atif's Universe",
   defaultSeoTitle: "Atif's Universe - Portfolio",
   defaultSeoDescription: "Portfolio of Atif - Full-Stack Developer, UI/UX Enthusiast, and Graphics Designer.",
-  ogImageUrl: "https://placehold.co/1200x630.png", // Default OG image
+  ogImageUrl: "https://placehold.co/1200x630.png", 
 };
 
 
@@ -230,9 +245,6 @@ export interface EmailTemplates {
   adminNotificationProjectHTML: string;
 }
 
-// These default templates are used to initialize the EmailTemplatesEditor in the admin panel.
-// The actual emails are sent using the HTML defined in `src/app/actions/send-inquiry-email.ts`.
-// To update live emails, copy from the admin editor to the server action file.
 export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
   userConfirmationGeneralHTML: `
 <html>
@@ -357,4 +369,3 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
-

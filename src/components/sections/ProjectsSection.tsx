@@ -3,10 +3,10 @@
 
 import { useState, type FormEvent } from 'react';
 import Image from 'next/image';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link'; 
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
-import type { Project } from '@/data/constants';
+import type { Project, ProjectImage } from '@/data/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -24,7 +24,7 @@ import { ATIF_PORTFOLIO_DESCRIPTION, LOCALSTORAGE_MESSAGES_KEY, type AdminMessag
 
 interface ProjectCardProps {
   project: Project;
-  isGalleryPage?: boolean; // To conditionally render "View Details" button
+  isGalleryPage?: boolean; 
 }
 
 function ProjectCard({ project, isGalleryPage = false }: ProjectCardProps) {
@@ -158,7 +158,6 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
 
       if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
         console.warn("Admin email failed to send for service inquiry. Details:", emailResult.adminEmailError);
-        // Logic for saving failure message to localStorage can be added here if needed globally
       }
     } else {
       toast({ title: 'Submission Error', description: emailResult.error || 'Could not send your inquiry. Please try again.', variant: 'destructive' });
@@ -166,18 +165,19 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
     setIsSubmittingServiceInquiry(false);
   };
 
+  const firstImage = project.images && project.images.length > 0 ? project.images[0] : { url: 'https://placehold.co/600x400.png', hint: 'project placeholder' };
 
   return (
     <ScrollAnimationWrapper animationClassName="animate-fade-in-up">
       <Card className="h-full flex flex-col overflow-hidden bg-card shadow-xl hover:shadow-primary/20 transition-all duration-300 transform hover:-translate-y-1 group">
         <Link href={`/projects/${project.id}`} className="block relative w-full aspect-video overflow-hidden">
           <Image
-            src={project.imageUrl}
+            src={firstImage.url}
             alt={project.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
-            data-ai-hint={project.imageHint || 'project technology'}
+            data-ai-hint={firstImage.hint || 'project technology'}
           />
            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
@@ -341,18 +341,27 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
 interface ProjectsSectionProps {
   projects: Project[];
   isGalleryPage?: boolean;
+  sectionId?: string;
+  title?: string;
+  description?: string;
 }
 
-export function ProjectsSection({ projects, isGalleryPage = false }: ProjectsSectionProps) {
+export function ProjectsSection({ 
+  projects, 
+  isGalleryPage = false, 
+  sectionId="projects",
+  title="My Creations",
+  description="Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design."
+}: ProjectsSectionProps) {
   return (
-    <section id="projects" className="py-16 md:py-24 bg-secondary/10">
+    <section id={sectionId} className="py-16 md:py-24 bg-secondary/10">
       <Container>
         <ScrollAnimationWrapper>
           <h2 className="text-4xl md:text-5xl font-headline font-bold text-center mb-12">
-            My <span className="text-primary">Creations</span>
+            {title.split(' ').slice(0, -1).join(' ')} <span className="text-primary">{title.split(' ').pop()}</span>
           </h2>
           <p className="text-center text-lg text-muted-foreground max-w-2xl mx-auto mb-16">
-            Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design.
+            {description}
           </p>
         </ScrollAnimationWrapper>
 

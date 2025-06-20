@@ -19,7 +19,7 @@ import {
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY, LOCALSTORAGE_PROJECTS_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
-  type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
+  type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -33,12 +33,11 @@ import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff, ExternalLink, View } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff, ExternalLink, View, ImagePlus, XCircle } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
 const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
-// LOCALSTORAGE_PROJECTS_KEY is now imported from constants
 const LOCALSTORAGE_CONTACT_KEY = "admin_contact_info";
 
 
@@ -235,64 +234,104 @@ function ServicesEditor() {
 }
 
 function ProjectsEditor() {
-  const [projects, setProjects] = useState<Project[]>(PROJECTS_DATA);
+  const [projects, setProjects] = useState<Project[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY); // Using imported key
-    if (storedProjects) {
-      try {
-        const parsedProjects = JSON.parse(storedProjects).map((p: Project) => ({
-          ...p,
-          showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
-          showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-        }));
-        setProjects(parsedProjects);
-      } catch (e) {
-        console.error("Error parsing projects from localStorage", e);
-        setProjects(PROJECTS_DATA.map(p => ({
+    let initialProjects = PROJECTS_DATA.map(p => ({
+      ...p,
+      images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
+      showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+      showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+    }));
+
+    try {
+      const storedProjectsString = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
+      if (storedProjectsString) {
+        const storedProjects: Project[] = JSON.parse(storedProjectsString);
+        initialProjects = storedProjects.map(p => {
+          // Data migration for old structure
+          if (p.imageUrl && (!p.images || p.images.length === 0)) {
+            const migratedImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
+            delete p.imageUrl;
+            delete p.imageHint;
+            return { 
+              ...p, 
+              images: migratedImages,
+              showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+              showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+            };
+          }
+          return {
             ...p,
+            images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
             showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
             showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-        })));
-        toast({ title: "Load Error", description: "Could not load saved projects, reset to default.", variant: "destructive" });
+          };
+        });
       }
-    } else {
-      setProjects(PROJECTS_DATA.map(p => ({
-        ...p,
-        showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
-        showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-      })));
+    } catch (e) {
+      console.error("Error parsing projects from localStorage", e);
+      toast({ title: "Load Error", description: "Could not load saved projects, reset to default.", variant: "destructive" });
     }
+    setProjects(initialProjects);
   }, [toast]);
 
-  const handleProjectChange = (index: number, field: keyof Project, value: string | string[] | boolean) => {
+  const handleProjectChange = (projIndex: number, field: keyof Project, value: any) => {
     const updatedProjects = [...projects];
-    updatedProjects[index] = { ...updatedProjects[index], [field]: value };
+    updatedProjects[projIndex] = { ...updatedProjects[projIndex], [field]: value };
     setProjects(updatedProjects);
   };
 
-  const handleImageFileChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (projIndex: number, imgIndex: number, field: keyof ProjectImage, value: string) => {
+    const updatedProjects = [...projects];
+    const projectImages = [...(updatedProjects[projIndex].images || [])];
+    projectImages[imgIndex] = { ...projectImages[imgIndex], [field]: value };
+    updatedProjects[projIndex].images = projectImages;
+    setProjects(updatedProjects);
+  };
+  
+  const handleImageFileChange = (projIndex: number, imgIndex: number, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleProjectChange(index, 'imageUrl', reader.result as string);
-        toast({ title: "Image Preview Ready", description: "Image updated. Remember to save."})
+        handleImageChange(projIndex, imgIndex, 'url', reader.result as string);
+        toast({ title: "Image Preview Ready", description: `Image ${imgIndex + 1} for project '${projects[projIndex].title}' updated. Remember to save.` });
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const handleAddImageToProject = (projIndex: number) => {
+    const updatedProjects = [...projects];
+    const projectImages = [...(updatedProjects[projIndex].images || [])];
+    projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'new image' });
+    updatedProjects[projIndex].images = projectImages;
+    setProjects(updatedProjects);
+    toast({ title: "Image Slot Added", description: `Added new image slot to '${projects[projIndex].title}'. Upload an image and save.` });
+  };
+
+  const handleRemoveImageFromProject = (projIndex: number, imgIndex: number) => {
+    const updatedProjects = [...projects];
+    let projectImages = [...(updatedProjects[projIndex].images || [])];
+    projectImages.splice(imgIndex, 1);
+    if (projectImages.length === 0) { // Ensure at least one placeholder if all removed
+        projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
+    }
+    updatedProjects[projIndex].images = projectImages;
+    setProjects(updatedProjects);
+    toast({ title: "Image Removed", description: `Image ${imgIndex + 1} removed from '${projects[projIndex].title}'. Remember to save.` });
+  };
+
   const handleAddProject = () => {
-    setProjects([...projects, {
+    setProjects(prevProjects => [...prevProjects, {
       id: `project-${Date.now()}`,
-      title: '',
-      description: '',
-      longDescription: '',
-      imageUrl: 'https://placehold.co/600x400.png',
-      tags: [],
-      imageHint: 'new project',
+      title: 'New Project',
+      description: 'Short description for new project.',
+      longDescription: 'Detailed description for new project.',
+      images: [{ url: 'https://placehold.co/600x400.png', hint: 'new project' }],
+      tags: ['New Tag'],
       liveUrl: '',
       showLiveUrlButton: true,
       sourceUrl: '',
@@ -307,18 +346,19 @@ function ProjectsEditor() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects)); // Using imported key
+    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
     toast({ title: "Success!", description: "Projects data saved to local storage." });
   };
 
   const handleReset = () => {
-    const defaultProjectsWithToggles = PROJECTS_DATA.map(p => ({
+    const defaultFormattedProjects = PROJECTS_DATA.map(p => ({
         ...p,
+        images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
         showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
         showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
     }));
-    setProjects(defaultProjectsWithToggles);
-    localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY); // Using imported key
+    setProjects(defaultFormattedProjects);
+    localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY);
     toast({ title: "Reset Successful", description: "Projects data reset to default." });
   };
 
@@ -326,72 +366,79 @@ function ProjectsEditor() {
      <Card className="w-full">
       <CardHeader>
         <CardTitle>Projects Editor</CardTitle>
-        <CardDescription>Edit project details. Images are saved as Data URIs in local storage. Toggle visibility of Live Demo and Source buttons.</CardDescription>
+        <CardDescription>Edit project details. Manage multiple images per project. Images are saved as Data URIs in local storage. Toggle visibility of Live Demo and Source buttons.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {projects.map((project, index) => (
+        {projects.map((project, projIndex) => (
           <Card key={project.id} className="p-4 bg-secondary/20 space-y-3">
             <div>
-              <Label htmlFor={`project-title-${index}`}>Title</Label>
-              <Input id={`project-title-${index}`} value={project.title} onChange={(e) => handleProjectChange(index, 'title', e.target.value)} className="bg-input"/>
+              <Label htmlFor={`project-title-${projIndex}`}>Title</Label>
+              <Input id={`project-title-${projIndex}`} value={project.title} onChange={(e) => handleProjectChange(projIndex, 'title', e.target.value)} className="bg-input"/>
             </div>
             <div>
-              <Label htmlFor={`project-desc-${index}`}>Short Description</Label>
-              <Textarea id={`project-desc-${index}`} value={project.description} onChange={(e) => handleProjectChange(index, 'description', e.target.value)} rows={2} className="bg-input"/>
+              <Label htmlFor={`project-desc-${projIndex}`}>Short Description</Label>
+              <Textarea id={`project-desc-${projIndex}`} value={project.description} onChange={(e) => handleProjectChange(projIndex, 'description', e.target.value)} rows={2} className="bg-input"/>
             </div>
             <div>
-              <Label htmlFor={`project-longdesc-${index}`}>Long Description (for Detail Page)</Label>
-              <Textarea id={`project-longdesc-${index}`} value={project.longDescription} onChange={(e) => handleProjectChange(index, 'longDescription', e.target.value)} rows={4} className="bg-input"/>
+              <Label htmlFor={`project-longdesc-${projIndex}`}>Long Description (for Detail Page)</Label>
+              <Textarea id={`project-longdesc-${projIndex}`} value={project.longDescription} onChange={(e) => handleProjectChange(projIndex, 'longDescription', e.target.value)} rows={4} className="bg-input"/>
             </div>
+
+            <div className="space-y-4 mt-4 border-t border-border pt-4">
+              <Label className="text-md font-semibold">Project Images</Label>
+              {(project.images || []).map((img, imgIndex) => (
+                <Card key={`project-${projIndex}-img-${imgIndex}`} className="p-3 bg-card/50 space-y-2">
+                  <Label htmlFor={`project-${projIndex}-imgurl-${imgIndex}`}>Image {imgIndex + 1}</Label>
+                  <Input id={`project-${projIndex}-imgurl-${imgIndex}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(projIndex, imgIndex, e)} className="bg-input"/>
+                  {img.url && (
+                    <div className="mt-2 relative w-full aspect-video max-w-xs">
+                      <Image src={img.url} alt={`Preview ${imgIndex+1}`} layout="fill" objectFit="contain" className="rounded"/>
+                    </div>
+                  )}
+                  <Label htmlFor={`project-${projIndex}-imghint-${imgIndex}`}>Image AI Hint (1-2 words)</Label>
+                  <Input id={`project-${projIndex}-imghint-${imgIndex}`} value={img.hint || ""} onChange={(e) => handleImageChange(projIndex, imgIndex, 'hint', e.target.value)} className="bg-input"/>
+                  <Button variant="ghost" size="sm" onClick={() => handleRemoveImageFromProject(projIndex, imgIndex)} className="text-destructive hover:text-destructive/80">
+                    <XCircle className="mr-1 h-4 w-4"/> Remove Image {imgIndex + 1}
+                  </Button>
+                </Card>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => handleAddImageToProject(projIndex)}>
+                <ImagePlus className="mr-2 h-4 w-4"/> Add Another Image
+              </Button>
+            </div>
+            
             <div>
-              <Label htmlFor={`project-imageurl-${index}`}>Image</Label>
-              <Input id={`project-imageurl-${index}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(index, e)} className="bg-input"/>
-              <p className="text-xs text-muted-foreground mt-1">
-                <Crop className="inline-block h-3 w-3 mr-1" />
-                Recommended: 16:9 aspect ratio (e.g., 600x338).
-              </p>
-              {project.imageUrl && (
-                <div className="mt-2 relative w-full aspect-video max-w-xs">
-                  <Image src={project.imageUrl} alt="Preview" layout="fill" objectFit="contain" className="rounded"/>
-                </div>
-              )}
-            </div>
-             <div>
-              <Label htmlFor={`project-imagehint-${index}`}>Image AI Hint (1-2 words)</Label>
-              <Input id={`project-imagehint-${index}`} value={project.imageHint || ""} onChange={(e) => handleProjectChange(index, 'imageHint', e.target.value)} className="bg-input"/>
-            </div>
-            <div>
-              <Label htmlFor={`project-tags-${index}`}>Tags (comma-separated)</Label>
-              <Input id={`project-tags-${index}`} value={project.tags.join(', ')} onChange={(e) => handleProjectChange(index, 'tags', e.target.value.split(',').map(tag => tag.trim()))} className="bg-input"/>
+              <Label htmlFor={`project-tags-${projIndex}`}>Tags (comma-separated)</Label>
+              <Input id={`project-tags-${projIndex}`} value={(project.tags || []).join(', ')} onChange={(e) => handleProjectChange(projIndex, 'tags', e.target.value.split(',').map(tag => tag.trim()))} className="bg-input"/>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`project-live-${index}`}>Live Demo URL</Label>
-              <Input id={`project-live-${index}`} value={project.liveUrl || ''} onChange={(e) => handleProjectChange(index, 'liveUrl', e.target.value)} className="bg-input"/>
+              <Label htmlFor={`project-live-${projIndex}`}>Live Demo URL</Label>
+              <Input id={`project-live-${projIndex}`} value={project.liveUrl || ''} onChange={(e) => handleProjectChange(projIndex, 'liveUrl', e.target.value)} className="bg-input"/>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`project-showLive-${index}`}
+                  id={`project-showLive-${projIndex}`}
                   checked={project.showLiveUrlButton}
-                  onCheckedChange={(checked) => handleProjectChange(index, 'showLiveUrlButton', Boolean(checked))}
+                  onCheckedChange={(checked) => handleProjectChange(projIndex, 'showLiveUrlButton', Boolean(checked))}
                 />
-                <Label htmlFor={`project-showLive-${index}`} className="text-sm font-normal">Show Live Demo Button</Label>
+                <Label htmlFor={`project-showLive-${projIndex}`} className="text-sm font-normal">Show Live Demo Button</Label>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`project-source-${index}`}>Source Code URL</Label>
-              <Input id={`project-source-${index}`} value={project.sourceUrl || ''} onChange={(e) => handleProjectChange(index, 'sourceUrl', e.target.value)} className="bg-input"/>
+              <Label htmlFor={`project-source-${projIndex}`}>Source Code URL</Label>
+              <Input id={`project-source-${projIndex}`} value={project.sourceUrl || ''} onChange={(e) => handleProjectChange(projIndex, 'sourceUrl', e.target.value)} className="bg-input"/>
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  id={`project-showSource-${index}`}
+                  id={`project-showSource-${projIndex}`}
                   checked={project.showSourceUrlButton}
-                  onCheckedChange={(checked) => handleProjectChange(index, 'showSourceUrlButton', Boolean(checked))}
+                  onCheckedChange={(checked) => handleProjectChange(projIndex, 'showSourceUrlButton', Boolean(checked))}
                 />
-                <Label htmlFor={`project-showSource-${index}`} className="text-sm font-normal">Show Source Code Button</Label>
+                <Label htmlFor={`project-showSource-${projIndex}`} className="text-sm font-normal">Show Source Code Button</Label>
               </div>
             </div>
 
-            <Button variant="destructive" size="sm" onClick={() => handleRemoveProject(index)} className="mt-3">
+            <Button variant="destructive" size="sm" onClick={() => handleRemoveProject(projIndex)} className="mt-3">
               <Trash2 className="mr-2 h-4 w-4" /> Remove Project
             </Button>
           </Card>
@@ -1752,4 +1799,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

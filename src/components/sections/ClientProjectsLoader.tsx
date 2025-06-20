@@ -2,15 +2,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ProjectsSection } from '@/components/sections/ProjectsSection'; // This component will now be simpler
-import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, type Project } from '@/data/constants';
+import { ProjectsSection } from '@/components/sections/ProjectsSection'; 
+import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, type Project, type ProjectImage } from '@/data/constants';
 import { Container } from '@/components/shared/Container';
 
 interface ClientProjectsLoaderProps {
   sectionId?: string;
   title?: string;
   description?: string;
-  isGalleryPage?: boolean; // To control "View Details" button visibility in ProjectCard
+  isGalleryPage?: boolean; 
 }
 
 export function ClientProjectsLoader({ 
@@ -19,43 +19,65 @@ export function ClientProjectsLoader({
     description = "Here's a selection of projects...",
     isGalleryPage = false
 }: ClientProjectsLoaderProps) {
-  const [projectsToDisplay, setProjectsToDisplay] = useState<Project[]>(PROJECTS_DATA);
+  const [projectsToDisplay, setProjectsToDisplay] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let loadedProjects: Project[] = PROJECTS_DATA.map(p => {
+        // Ensure default structure for default data
+        const images = (p.images && p.images.length > 0) 
+          ? p.images 
+          : (p.imageUrl ? [{ url: p.imageUrl, hint: p.imageHint || 'project image' }] : [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }]);
+        const { imageUrl, imageHint, ...restOfP } = p;
+        return {
+          ...restOfP,
+          images,
+          showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+          showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+        };
+    });
+
     try {
       const storedProjectsString = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
         
         if (Array.isArray(storedProjects)) {
-          // Ensure boolean flags have default values if missing from localStorage
-           const projectsWithDefaults = storedProjects.map(p => ({
-            ...p,
-            showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
-            showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-          }));
+           const projectsWithMigrationAndDefaults = storedProjects.map(p => {
+              let currentImages: ProjectImage[] = p.images || [];
+              // Migrate old single image structure to new multiple image structure
+              if (p.imageUrl && (!p.images || p.images.length === 0)) {
+                  currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
+              }
+              // Ensure there's at least one placeholder image if array is empty
+              if (currentImages.length === 0) {
+                  currentImages = [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }];
+              }
+              
+              // Remove deprecated fields to avoid confusion
+              const { imageUrl, imageHint, ...restOfP } = p;
 
-          if (projectsWithDefaults.length > 0 && projectsWithDefaults.every(p => typeof p.id === 'string')) {
-             setProjectsToDisplay(projectsWithDefaults);
-          } else if (projectsWithDefaults.length === 0) {
-            setProjectsToDisplay([]); // Honor empty array if explicitly saved
-          } else {
-            console.warn("Projects data from localStorage is malformed or incomplete. Using default projects.");
-            setProjectsToDisplay(PROJECTS_DATA);
+              return {
+                ...restOfP,
+                images: currentImages,
+                showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+                showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+              };
+          });
+
+          if (projectsWithMigrationAndDefaults.length > 0 && projectsWithMigrationAndDefaults.every(p => typeof p.id === 'string')) {
+             loadedProjects = projectsWithMigrationAndDefaults;
+          } else if (projectsWithMigrationAndDefaults.length === 0) {
+            loadedProjects = []; 
           }
         } else {
           console.warn("Stored projects data is not an array. Using default projects.");
-          setProjectsToDisplay(PROJECTS_DATA);
         }
-      } else {
-         // No data in local storage, use defaults
-         setProjectsToDisplay(PROJECTS_DATA);
       }
     } catch (error) {
       console.error("Error loading projects from localStorage. Using default projects:", error);
-      setProjectsToDisplay(PROJECTS_DATA);
     }
+    setProjectsToDisplay(loadedProjects);
     setIsLoading(false);
   }, []);
 
@@ -69,7 +91,5 @@ export function ClientProjectsLoader({
     );
   }
 
-  // ProjectsSection will now be simpler, mostly for layout, and will receive projects from here.
-  // The title and description are passed to ProjectsSection, which is now a more generic display component.
   return <ProjectsSection projects={projectsToDisplay} sectionId={sectionId} title={title} description={description} isGalleryPage={isGalleryPage} />;
 }
