@@ -1,9 +1,10 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-import { SiteInfoProvider } from '@/components/shared/SiteInfoProvider'; // Import the provider
-import { DynamicMetadata } from '@/components/shared/DynamicMetadata'; // Import the new component
+// import { Toaster } from "@/components/ui/toaster"; // Original Toaster import
+import { SiteInfoProvider } from '@/components/shared/SiteInfoProvider';
+import { DynamicMetadata } from '@/components/shared/DynamicMetadata';
+import { ClientOnlyToaster } from '@/components/shared/ClientOnlyToaster'; // Import new component
 
 // This remains the static/default metadata
 export const metadata: Metadata = {
@@ -45,7 +46,7 @@ export default function RootLayout({
         <SiteInfoProvider> {/* Wrap with the provider */}
           <DynamicMetadata /> {/* Add component to manage dynamic tags */}
           {children}
-          <Toaster />
+          <ClientOnlyToaster /> {/* Use the client-only wrapper for Toaster */}
         </SiteInfoProvider>
       </body>
     </html>
