@@ -55,9 +55,9 @@ export function TypingAnimation({
   }, [charIndex, isDeleting, textIndex, texts, typingSpeed, deletingSpeed, pauseDuration, hasMounted]);
 
   if (!hasMounted) {
-    // Render a non-breaking space as a placeholder to maintain layout integrity
-    // This ensures the server and initial client render match before dynamic content loads.
-    return <span className={cn("inline-block", className)}>&nbsp;</span>;
+    // Render nothing on the server and initial client render.
+    // This is the safest way to prevent this component from causing hydration errors.
+    return null;
   }
 
   return (
