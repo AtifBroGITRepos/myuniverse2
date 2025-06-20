@@ -248,13 +248,12 @@ function ProjectsEditor() {
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
         initialProjects = storedProjects.map(p => {
-          // Data migration for old structure
           if (p.imageUrl && (!p.images || p.images.length === 0)) {
             const migratedImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
             delete p.imageUrl;
             delete p.imageHint;
-            return { 
-              ...p, 
+            return {
+              ...p,
               images: migratedImages,
               showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
               showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
@@ -288,7 +287,7 @@ function ProjectsEditor() {
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
   };
-  
+
   const handleImageFileChange = (projIndex: number, imgIndex: number, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -314,7 +313,7 @@ function ProjectsEditor() {
     const updatedProjects = [...projects];
     let projectImages = [...(updatedProjects[projIndex].images || [])];
     projectImages.splice(imgIndex, 1);
-    if (projectImages.length === 0) { 
+    if (projectImages.length === 0) {
         projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
     }
     updatedProjects[projIndex].images = projectImages;
@@ -405,7 +404,7 @@ function ProjectsEditor() {
                 {(project.images || []).length === 0 ? 'Add Image' : 'Add Another Image'}
               </Button>
             </div>
-            
+
             <div>
               <Label htmlFor={`project-tags-${projIndex}`}>Tags (comma-separated)</Label>
               <Input id={`project-tags-${projIndex}`} value={(project.tags || []).join(', ')} onChange={(e) => handleProjectChange(projIndex, 'tags', e.target.value.split(',').map(tag => tag.trim()))} className="bg-input"/>
@@ -589,7 +588,6 @@ function ContactEditor() {
     if (storedContactInfo) {
        try {
         const parsedInfo = JSON.parse(storedContactInfo);
-        // Ensure the loaded data has the new whatsappNumber field
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
             parsedInfo.whatsappNumber = parsedInfo.phone;
             delete parsedInfo.phone;
@@ -641,10 +639,10 @@ function ContactEditor() {
         </div>
         <div>
           <Label htmlFor="contact-whatsapp">WhatsApp Number</Label>
-          <Input 
-            id="contact-whatsapp" 
-            value={contactInfo.whatsappNumber} 
-            onChange={e => handleChange('whatsappNumber', e.target.value)} 
+          <Input
+            id="contact-whatsapp"
+            value={contactInfo.whatsappNumber}
+            onChange={e => handleChange('whatsappNumber', e.target.value)}
             className="bg-input"
             placeholder="e.g., 15551234567 (country code + number)"
           />
