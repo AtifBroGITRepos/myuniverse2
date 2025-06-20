@@ -20,7 +20,7 @@ import {
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
-  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, LOCALSTORAGE_SERVICES_KEY as ADMIN_SERVICES_LOCALSTORAGE_KEY
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, 
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -121,7 +121,7 @@ function ServicesEditor() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedServices = localStorage.getItem(ADMIN_SERVICES_LOCALSTORAGE_KEY);
+    const storedServices = localStorage.getItem(LOCALSTORAGE_SERVICES_KEY);
     if (storedServices) {
       try {
         setServices(JSON.parse(storedServices));
@@ -158,13 +158,13 @@ function ServicesEditor() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(ADMIN_SERVICES_LOCALSTORAGE_KEY, JSON.stringify(services));
+    localStorage.setItem(LOCALSTORAGE_SERVICES_KEY, JSON.stringify(services));
     toast({ title: "Success!", description: "Services data saved to local storage." });
   };
 
   const handleReset = () => {
     setServices(SERVICES_DATA);
-    localStorage.removeItem(ADMIN_SERVICES_LOCALSTORAGE_KEY);
+    localStorage.removeItem(LOCALSTORAGE_SERVICES_KEY);
     toast({ title: "Reset Successful", description: "Services data reset to default." });
   };
 
@@ -589,7 +589,7 @@ function ContactEditor() {
         const parsedInfo = JSON.parse(storedContactInfo);
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
             parsedInfo.whatsappNumber = parsedInfo.phone;
-            delete parsedInfo.phone; 
+            // delete parsedInfo.phone; // Not strictly necessary as it will be overwritten by spread or ignored
         }
         setContactInfo(parsedInfo);
       } catch (e) {
@@ -1497,8 +1497,9 @@ function EmailTemplatesEditor() {
               <li>Redeploy your application for the changes to take effect on the server.</li>
             </ol>
             This editor helps you design and manage the templates locally before updating the server code. The default templates here are now in sync with `send-inquiry-email.ts`.
-          </CardDescription>
-        </CardHeader>
+          </div>
+        </CardDescription>
+      </CardHeader>
       <CardContent className="space-y-8">
         <div>
           <h4 className="font-medium text-lg mb-2">Available Placeholders:</h4>
@@ -1740,7 +1741,7 @@ export default function AdminPage() {
      if(sessionStorage.getItem('adminAuthenticated') === 'true') {
        setIsAuthenticated(true);
      }
-  },[])
+  },[]);
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
@@ -1758,7 +1759,7 @@ export default function AdminPage() {
     sessionStorage.removeItem('adminAuthenticated');
     setSecretKey('');
     toast({title: "Logged Out", description: "You have been logged out of the admin panel."});
-  }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -1807,3 +1808,4 @@ export default function AdminPage() {
   );
 }
 
+    
