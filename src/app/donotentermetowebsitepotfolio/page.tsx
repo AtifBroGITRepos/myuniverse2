@@ -20,7 +20,7 @@ import {
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
-  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, LOCALSTORAGE_SERVICES_KEY as ADMIN_SERVICES_LOCALSTORAGE_KEY // Added explicit alias
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -121,7 +121,7 @@ function ServicesEditor() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedServices = localStorage.getItem(LOCALSTORAGE_SERVICES_KEY);
+    const storedServices = localStorage.getItem(ADMIN_SERVICES_LOCALSTORAGE_KEY);
     if (storedServices) {
       try {
         setServices(JSON.parse(storedServices));
@@ -158,13 +158,13 @@ function ServicesEditor() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_SERVICES_KEY, JSON.stringify(services));
+    localStorage.setItem(ADMIN_SERVICES_LOCALSTORAGE_KEY, JSON.stringify(services));
     toast({ title: "Success!", description: "Services data saved to local storage." });
   };
 
   const handleReset = () => {
     setServices(SERVICES_DATA);
-    localStorage.removeItem(LOCALSTORAGE_SERVICES_KEY);
+    localStorage.removeItem(ADMIN_SERVICES_LOCALSTORAGE_KEY);
     toast({ title: "Reset Successful", description: "Services data reset to default." });
   };
 
@@ -248,20 +248,22 @@ function ProjectsEditor() {
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
         initialProjects = storedProjects.map(p => {
+          // Migration logic for old single image structure
+          let currentImages = p.images || [];
           if (p.imageUrl && (!p.images || p.images.length === 0)) {
-            const migratedImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
-            delete p.imageUrl;
-            delete p.imageHint;
-            return {
-              ...p,
-              images: migratedImages,
-              showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
-              showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-            };
+              currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
           }
+          // Ensure there's at least one placeholder image if array is empty after migration check
+          if (currentImages.length === 0) {
+              currentImages = [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }];
+          }
+          
+          // Remove deprecated fields after migration
+          const { imageUrl, imageHint, ...restOfP } = p;
+          
           return {
-            ...p,
-            images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
+            ...restOfP,
+            images: currentImages,
             showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
             showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
           };
@@ -282,7 +284,7 @@ function ProjectsEditor() {
 
   const handleImageChange = (projIndex: number, imgIndex: number, field: keyof ProjectImage, value: string) => {
     const updatedProjects = [...projects];
-    const projectImages = [...(updatedProjects[projIndex].images || [])];
+    const projectImages = [...(updatedProjects[projIndex].images || [])]; // Ensure images array exists
     projectImages[imgIndex] = { ...projectImages[imgIndex], [field]: value };
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
@@ -313,6 +315,7 @@ function ProjectsEditor() {
     const updatedProjects = [...projects];
     let projectImages = [...(updatedProjects[projIndex].images || [])];
     projectImages.splice(imgIndex, 1);
+    // If all images are removed, add a default placeholder back
     if (projectImages.length === 0) {
         projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
     }
@@ -588,18 +591,19 @@ function ContactEditor() {
     if (storedContactInfo) {
        try {
         const parsedInfo = JSON.parse(storedContactInfo);
+        // Migration for old phone field
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
             parsedInfo.whatsappNumber = parsedInfo.phone;
-            delete parsedInfo.phone;
+            delete parsedInfo.phone; // Remove old field
         }
         setContactInfo(parsedInfo);
       } catch (e) {
         console.error("Error parsing contact info from localStorage", e);
-        setContactInfo(CONTACT_INFO);
+        setContactInfo(CONTACT_INFO); // Fallback
         toast({ title: "Load Error", description: "Could not load saved contact info, reset to default.", variant: "destructive" });
       }
     } else {
-      setContactInfo(CONTACT_INFO);
+      setContactInfo(CONTACT_INFO); // Default if nothing in localStorage
     }
   }, [toast]);
 
@@ -1808,3 +1812,5 @@ export default function AdminPage() {
   );
 }
 
+
+    
