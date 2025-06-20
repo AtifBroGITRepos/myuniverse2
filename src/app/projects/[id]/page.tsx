@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -19,20 +19,23 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
-  const [project, setProject] = useState<Project | null | undefined>(undefined); 
+  const [project, setProject] = useState<Project | null | undefined>(undefined);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [currentImage, setCurrentImage] = useState(0);
+  const [totalImages, setTotalImages] = useState(0);
 
   useEffect(() => {
     if (projectId) {
       let projectsToSearch: Project[] = PROJECTS_DATA.map(p => {
-        // Ensure default structure for default data
-        const images = (p.images && p.images.length > 0) 
-          ? p.images 
+        const images = (p.images && p.images.length > 0)
+          ? p.images
           : (p.imageUrl ? [{ url: p.imageUrl, hint: p.imageHint || 'project image' }] : [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }]);
         return {
           ...p,
@@ -48,7 +51,6 @@ export default function ProjectDetailPage() {
           const storedProjects: Project[] = JSON.parse(storedProjectsString);
           if (Array.isArray(storedProjects) && storedProjects.length > 0) {
              projectsToSearch = storedProjects.map(p => {
-                // Migrate old single image structure to new multiple image structure
                 let currentImages = p.images || [];
                 if (p.imageUrl && (!p.images || p.images.length === 0)) {
                     currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
@@ -56,7 +58,7 @@ export default function ProjectDetailPage() {
                 if (currentImages.length === 0) {
                     currentImages = [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }];
                 }
-                const { imageUrl, imageHint, ...restOfProject } = p; // remove deprecated fields
+                const { imageUrl, imageHint, ...restOfProject } = p;
                 return {
                     ...restOfProject,
                     images: currentImages,
@@ -71,9 +73,32 @@ export default function ProjectDetailPage() {
       }
       
       const foundProject = projectsToSearch.find(p => p.id === projectId);
-      setProject(foundProject || null); 
+      setProject(foundProject || null);
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (!carouselApi || !project?.images) return;
+
+    setTotalImages(carouselApi.scrollSnapList().length);
+    setCurrentImage(carouselApi.selectedScrollSnap() + 1);
+
+    const onSelect = () => {
+      setCurrentImage(carouselApi.selectedScrollSnap() + 1);
+    };
+
+    carouselApi.on('select', onSelect);
+    carouselApi.on('reInit', () => { // Also update on reinitialization
+        setTotalImages(carouselApi.scrollSnapList().length);
+        setCurrentImage(carouselApi.selectedScrollSnap() + 1);
+    });
+
+
+    return () => {
+      carouselApi.off('select', onSelect);
+    };
+  }, [carouselApi, project?.images]);
+
 
   if (project === undefined) {
     return (
@@ -91,7 +116,7 @@ export default function ProjectDetailPage() {
 
   if (project === null) {
     useEffect(() => {
-        router.replace('/projects'); 
+        router.replace('/projects');
     }, [router]);
     return (
          <>
@@ -109,6 +134,8 @@ export default function ProjectDetailPage() {
         </>
     );
   }
+
+  const hasMultipleImages = project.images && project.images.length > 1;
 
   return (
     <>
@@ -133,32 +160,42 @@ export default function ProjectDetailPage() {
 
             <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="200ms">
               {project.images && project.images.length > 0 ? (
-                <div className="mb-8 shadow-lg rounded-md overflow-hidden max-w-2xl mx-auto">
-                   <Carousel className="w-full" opts={{ loop: true }}>
+                <div className="mb-4 shadow-lg rounded-md overflow-hidden max-w-2xl mx-auto">
+                   <Carousel 
+                    className="w-full" 
+                    opts={{ loop: hasMultipleImages }}
+                    setApi={setCarouselApi}
+                   >
                     <CarouselContent>
                       {project.images.map((image, index) => (
                         <CarouselItem key={index}>
-                          <div className="relative w-full aspect-video">
+                          <div className="relative w-full aspect-video bg-muted/30 rounded-md">
                             <Image
                               src={image.url}
                               alt={`${project.title} - Image ${index + 1}`}
                               fill
                               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 80vw, 60vw"
-                              className="object-contain rounded-md" // object-contain to show full image
+                              className="object-contain rounded-md"
                               data-ai-hint={image.hint || 'project image detail'}
-                              priority={index === 0} 
+                              priority={index === 0}
                             />
                           </div>
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    {project.images.length > 1 && (
+                    {hasMultipleImages && (
                       <>
                         <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/70 hover:bg-background text-foreground" />
                         <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/70 hover:bg-background text-foreground" />
                       </>
                     )}
                   </Carousel>
+                  {hasMultipleImages && (
+                    <div className="text-center mt-3 text-sm text-muted-foreground">
+                      <p>Image {currentImage} of {totalImages}</p>
+                      <p className="italic">Slide to view more images</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="relative w-full aspect-video rounded-md overflow-hidden mb-8 shadow-lg bg-muted max-w-2xl mx-auto flex items-center justify-center">
@@ -211,3 +248,4 @@ export default function ProjectDetailPage() {
     </>
   );
 }
+
