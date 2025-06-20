@@ -19,7 +19,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"; // Assuming this path will be valid after user runs `npx shadcn-ui@latest add carousel`
+} from "@/components/ui/carousel";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -159,9 +159,6 @@ export default function ProjectDetailPage() {
                       </>
                     )}
                   </Carousel>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Note: If you don't see the Carousel UI component, you may need to run: <code className="text-xs bg-muted px-1 rounded">npx shadcn-ui@latest add carousel</code> in your project terminal.
-                  </p>
                 </div>
               ) : (
                 <div className="relative w-full aspect-video rounded-md overflow-hidden mb-8 shadow-lg bg-muted max-w-2xl mx-auto flex items-center justify-center">
