@@ -185,20 +185,22 @@ export interface AdminMessage {
 export interface NavItem {
   name: string;
   href: string;
+  isExternal?: boolean;
 }
 
 export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
-  { name: 'Home', href: '#hero' },
-  { name: 'About', href: '#about' },
-  { name: 'Skills', href: '#skills' },
-  { name: 'Services', href: '#services' },
-  { name: 'Projects', href: '#projects' },
-  { name: 'Testimonials', href: '#testimonials' },
-  { name: 'AI Hub', href: '#ai-tools' },
-  { name: 'Contact', href: '#contact' },
+  { name: 'Home', href: '/' },
+  { name: 'About', href: '/#about' },
+  { name: 'Skills', href: '/#skills' },
+  { name: 'Services', href: '/#services' },
+  { name: 'Gallery', href: '/projects' },
+  { name: 'Testimonials', href: '/#testimonials' },
+  { name: 'AI Hub', href: '/#ai-tools' },
+  { name: 'Contact', href: '/#contact' },
 ];
 
-export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data"; // Added this export
+export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
+export const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data"; // Added export
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";

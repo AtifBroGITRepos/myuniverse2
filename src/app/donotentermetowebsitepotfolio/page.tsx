@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import {
   ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
-  LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY,
+  LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY, LOCALSTORAGE_PROJECTS_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem
@@ -33,12 +33,12 @@ import { sendAdminComposedEmail } from '@/app/actions/send-admin-email';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
-import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Lock, Unlock, Trash2, PlusCircle, UserSquare, Briefcase, LayoutGrid, Mail, BotMessageSquare, FileText, Send, Star, MenuSquareIcon, Crop, Lightbulb, Layers, Settings, MailPlus, LayoutTemplate, MessageCircleQuestion, RefreshCw, Globe, UploadCloud, Link as LinkIcon, Eye, EyeOff, ExternalLink, View } from 'lucide-react';
 
 const ADMIN_SECRET_KEY = "ilovegfxm";
 const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
 const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
-const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data";
+// LOCALSTORAGE_PROJECTS_KEY is now imported from constants
 const LOCALSTORAGE_CONTACT_KEY = "admin_contact_info";
 
 
@@ -239,7 +239,7 @@ function ProjectsEditor() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
+    const storedProjects = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY); // Using imported key
     if (storedProjects) {
       try {
         const parsedProjects = JSON.parse(storedProjects).map((p: Project) => ({
@@ -307,7 +307,7 @@ function ProjectsEditor() {
   };
 
   const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
+    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects)); // Using imported key
     toast({ title: "Success!", description: "Projects data saved to local storage." });
   };
 
@@ -318,7 +318,7 @@ function ProjectsEditor() {
         showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
     }));
     setProjects(defaultProjectsWithToggles);
-    localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY);
+    localStorage.removeItem(LOCALSTORAGE_PROJECTS_KEY); // Using imported key
     toast({ title: "Reset Successful", description: "Projects data reset to default." });
   };
 
@@ -340,7 +340,7 @@ function ProjectsEditor() {
               <Textarea id={`project-desc-${index}`} value={project.description} onChange={(e) => handleProjectChange(index, 'description', e.target.value)} rows={2} className="bg-input"/>
             </div>
             <div>
-              <Label htmlFor={`project-longdesc-${index}`}>Long Description</Label>
+              <Label htmlFor={`project-longdesc-${index}`}>Long Description (for Detail Page)</Label>
               <Textarea id={`project-longdesc-${index}`} value={project.longDescription} onChange={(e) => handleProjectChange(index, 'longDescription', e.target.value)} rows={4} className="bg-input"/>
             </div>
             <div>
@@ -636,10 +636,24 @@ function HeaderNavEditor() {
     }
   }, [toast]);
 
-  const handleNavItemChange = (index: number, field: keyof NavItem, value: string) => {
+  const handleNavItemChange = (index: number, field: keyof NavItem, value: string | boolean) => {
     const updatedNavItems = [...navItems];
-    updatedNavItems[index] = { ...updatedNavItems[index], [field]: value };
+     if (field === 'isExternal') {
+      updatedNavItems[index] = { ...updatedNavItems[index], [field]: Boolean(value) };
+    } else {
+      updatedNavItems[index] = { ...updatedNavItems[index], [field]: String(value) };
+    }
     setNavItems(updatedNavItems);
+  };
+
+  const handleAddNavItem = () => {
+    setNavItems([...navItems, { name: 'New Item', href: '#', isExternal: false }]);
+    toast({ title: "Nav Item Added", description: "A new navigation item has been added. Remember to save." });
+  };
+
+  const handleRemoveNavItem = (index: number) => {
+    setNavItems(navItems.filter((_, i) => i !== index));
+    toast({ title: "Nav Item Removed", description: "Navigation item removed. Remember to save." });
   };
 
   const handleSave = () => {
@@ -657,7 +671,7 @@ function HeaderNavEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Header Navigation Editor</CardTitle>
-        <CardDescription>Edit the text and links for the main site navigation. Changes are saved locally.</CardDescription>
+        <CardDescription>Edit the text, links, and target for the main site navigation. Changes are saved locally.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {navItems.map((item, index) => (
@@ -678,11 +692,25 @@ function HeaderNavEditor() {
                 value={item.href}
                 onChange={(e) => handleNavItemChange(index, 'href', e.target.value)}
                 className="bg-input"
-                placeholder="e.g., #about or /blog"
+                placeholder="e.g., #about, /blog, or https://example.com"
               />
             </div>
+            <div className="flex items-center space-x-2">
+                <Checkbox
+                  id={`navitem-external-${index}`}
+                  checked={item.isExternal || false}
+                  onCheckedChange={(checked) => handleNavItemChange(index, 'isExternal', Boolean(checked))}
+                />
+                <Label htmlFor={`navitem-external-${index}`} className="text-sm font-normal">Open in new tab (External Link)</Label>
+            </div>
+            <Button variant="destructive" size="sm" onClick={() => handleRemoveNavItem(index)} className="mt-2">
+              <Trash2 className="mr-2 h-4 w-4" /> Remove Item
+            </Button>
           </Card>
         ))}
+         <Button variant="outline" onClick={handleAddNavItem} className="w-full">
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Navigation Item
+        </Button>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>

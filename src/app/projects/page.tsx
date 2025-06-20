@@ -1,33 +1,29 @@
 
-'use client';
+"use client";
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Image from 'next/image';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
-import type { Project } from '@/data/constants';
+import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, ATIF_PORTFOLIO_DESCRIPTION, type Project, type AdminMessage, LOCALSTORAGE_MESSAGES_KEY } from '@/data/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { ExternalLink, Github, Sparkles, MessageSquare, Lightbulb, Send, Palette, View } from 'lucide-react';
 import { generateTestimonials, type GenerateTestimonialsInput } from '@/ai/flows/generate-testimonials';
 import { suggestProjectIdeas, type SuggestProjectIdeasInput } from '@/ai/flows/suggest-project-ideas';
 import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow';
 import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
-import { ExternalLink, Github, Sparkles, MessageSquare, Lightbulb, Send, Palette, View } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { ATIF_PORTFOLIO_DESCRIPTION, LOCALSTORAGE_MESSAGES_KEY, type AdminMessage } from '@/data/constants';
+import { Header } from '@/components/shared/Header';
+import { Footer } from '@/components/shared/Footer';
 
-interface ProjectCardProps {
-  project: Project;
-  isGalleryPage?: boolean; // To conditionally render "View Details" button
-}
-
-function ProjectCard({ project, isGalleryPage = false }: ProjectCardProps) {
+function ProjectCard({ project }: { project: Project }) {
   const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [clientNeedsForTestimonial, setClientNeedsForTestimonial] = useState('');
@@ -40,8 +36,6 @@ function ProjectCard({ project, isGalleryPage = false }: ProjectCardProps) {
   const [aiGeneratedIdeas, setAiGeneratedIdeas] = useState<string | null>(null);
   const [isLoadingServiceIdeas, setIsLoadingServiceIdeas] = useState(false);
   const [isSubmittingServiceInquiry, setIsSubmittingServiceInquiry] = useState(false);
-
-
   const { toast } = useToast();
 
   const handleGenerateTestimonial = async () => {
@@ -155,17 +149,14 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
       setInquiryProjectIdea('');
       setAiGeneratedIdeas(null);
       setIsServiceModalOpen(false);
-
       if (emailResult.adminEmailFailed && emailResult.originalInquiryData) {
-        console.warn("Admin email failed to send for service inquiry. Details:", emailResult.adminEmailError);
-        // Logic for saving failure message to localStorage can be added here if needed globally
+        console.warn("Admin email failed for service inquiry:", emailResult.adminEmailError);
       }
     } else {
       toast({ title: 'Submission Error', description: emailResult.error || 'Could not send your inquiry. Please try again.', variant: 'destructive' });
     }
     setIsSubmittingServiceInquiry(false);
   };
-
 
   return (
     <ScrollAnimationWrapper animationClassName="animate-fade-in-up">
@@ -179,7 +170,7 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             data-ai-hint={project.imageHint || 'project technology'}
           />
-           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
         <CardHeader>
           <Link href={`/projects/${project.id}`}>
@@ -198,13 +189,11 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center flex-wrap">
           <div className="flex gap-2 flex-wrap">
-             {isGalleryPage && (
-                <Button variant="outline" size="sm" asChild className="border-primary/50 text-primary/90 hover:bg-primary/10 hover:text-primary">
-                    <Link href={`/projects/${project.id}`}>
-                    <View className="mr-2 h-4 w-4" /> View Details
-                    </Link>
-                </Button>
-             )}
+             <Button variant="outline" size="sm" asChild className="border-primary/50 text-primary/90 hover:bg-primary/10 hover:text-primary">
+                <Link href={`/projects/${project.id}`}>
+                  <View className="mr-2 h-4 w-4" /> View Details
+                </Link>
+              </Button>
             {(project.showLiveUrlButton === undefined || project.showLiveUrlButton) && project.liveUrl && (
               <Button variant="outline" size="sm" asChild className="border-primary text-primary hover:bg-primary/10">
                 <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
@@ -337,35 +326,78 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
   );
 }
 
+function ClientProjectsView() {
+  const [projects, setProjects] = useState<Project[]>(PROJECTS_DATA);
+  const [isLoading, setIsLoading] = useState(true);
 
-interface ProjectsSectionProps {
-  projects: Project[];
-  isGalleryPage?: boolean;
-}
+  useEffect(() => {
+    try {
+      const storedProjectsString = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
+      if (storedProjectsString) {
+        const storedProjects: Project[] = JSON.parse(storedProjectsString);
+        if (Array.isArray(storedProjects) && storedProjects.every(p => typeof p.id === 'string')) {
+            // Ensure boolean flags have default values if missing from localStorage
+            const projectsWithDefaults = storedProjects.map(p => ({
+                ...p,
+                showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+                showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+            }));
+          setProjects(projectsWithDefaults);
+        } else {
+          setProjects(PROJECTS_DATA); // Fallback if structure is invalid
+        }
+      } else {
+        setProjects(PROJECTS_DATA); // Fallback if no data in localStorage
+      }
+    } catch (error) {
+      console.error("Error loading projects from localStorage. Using default projects:", error);
+      setProjects(PROJECTS_DATA); // Fallback on any error
+    }
+    setIsLoading(false);
+  }, []);
 
-export function ProjectsSection({ projects, isGalleryPage = false }: ProjectsSectionProps) {
+  if (isLoading) {
+    return (
+      <Container className="py-16 md:py-24 text-center">
+        <p className="text-muted-foreground">Loading projects...</p>
+      </Container>
+    );
+  }
+
   return (
-    <section id="projects" className="py-16 md:py-24 bg-secondary/10">
+    <section id="projects-gallery" className="py-16 md:py-24 bg-secondary/10">
       <Container>
         <ScrollAnimationWrapper>
           <h2 className="text-4xl md:text-5xl font-headline font-bold text-center mb-12">
-            My <span className="text-primary">Creations</span>
+            Project <span className="text-primary">Gallery</span>
           </h2>
           <p className="text-center text-lg text-muted-foreground max-w-2xl mx-auto mb-16">
-            Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design.
+            Browse through a collection of my work. Click on any project to see more details.
           </p>
         </ScrollAnimationWrapper>
 
         {projects.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} isGalleryPage={isGalleryPage} />
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         ) : (
-           <p className="text-center text-muted-foreground text-lg">No projects available at the moment. Check back soon!</p>
+          <p className="text-center text-muted-foreground text-lg">No projects available at the moment. Check back soon!</p>
         )}
       </Container>
     </section>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <>
+      <Header />
+      <main className="flex-grow">
+        <ClientProjectsView />
+      </main>
+      <Footer />
+    </>
   );
 }

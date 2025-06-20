@@ -1,0 +1,164 @@
+
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useParams, notFound, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Container } from '@/components/shared/Container';
+import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, type Project } from '@/data/constants';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ExternalLink, Github } from 'lucide-react';
+import { Header } from '@/components/shared/Header';
+import { Footer } from '@/components/shared/Footer';
+import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
+
+export default function ProjectDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const projectId = params.id as string;
+  const [project, setProject] = useState<Project | null | undefined>(undefined); // undefined for loading state
+
+  useEffect(() => {
+    if (projectId) {
+      let projectsToSearch = PROJECTS_DATA;
+      try {
+        const storedProjectsString = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
+        if (storedProjectsString) {
+          const storedProjects: Project[] = JSON.parse(storedProjectsString);
+          if (Array.isArray(storedProjects) && storedProjects.length > 0) {
+             projectsToSearch = storedProjects.map(p => ({
+                ...p,
+                showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+                showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Error loading projects from localStorage for detail page:", error);
+        // Fallback to PROJECTS_DATA is already handled by projectsToSearch default
+      }
+      
+      const foundProject = projectsToSearch.find(p => p.id === projectId);
+      setProject(foundProject || null); // null if not found, Project object if found
+    }
+  }, [projectId]);
+
+  if (project === undefined) {
+    return (
+      <>
+        <Header />
+        <main className="flex-grow">
+          <Container className="py-16 md:py-24 text-center">
+            <p className="text-muted-foreground">Loading project details...</p>
+          </Container>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (project === null) {
+    // Optionally, you could redirect or show a more elaborate "not found" component
+    // For now, using Next.js's notFound utility (though it typically works best in Server Components)
+    // A client-side redirect or custom component is more reliable here.
+    useEffect(() => {
+        router.replace('/projects'); // Or a custom 404 page
+    }, [router]);
+    return (
+         <>
+            <Header />
+            <main className="flex-grow">
+            <Container className="py-16 md:py-24 text-center">
+                <h1 className="text-2xl font-bold text-destructive mb-4">Project Not Found</h1>
+                <p className="text-muted-foreground mb-6">The project you are looking for does not exist or could not be loaded.</p>
+                <Button asChild>
+                    <Link href="/projects"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Gallery</Link>
+                </Button>
+            </Container>
+            </main>
+            <Footer />
+        </>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="flex-grow bg-background">
+        <Container className="py-12 md:py-20">
+          <ScrollAnimationWrapper animationClassName="animate-fade-in">
+            <Button variant="outline" asChild className="mb-8 group">
+              <Link href="/projects">
+                <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                Back to Gallery
+              </Link>
+            </Button>
+          </ScrollAnimationWrapper>
+
+          <article className="bg-card p-6 sm:p-8 md:p-10 rounded-lg shadow-xl">
+            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="100ms">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-headline font-bold text-primary mb-6">
+                {project.title}
+              </h1>
+            </ScrollAnimationWrapper>
+
+            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="200ms">
+              <div className="relative w-full aspect-video rounded-md overflow-hidden mb-8 shadow-lg">
+                <Image
+                  src={project.imageUrl}
+                  alt={project.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                  className="object-cover"
+                  data-ai-hint={project.imageHint || 'project feature technology'}
+                  priority // Prioritize loading the main project image
+                />
+              </div>
+            </ScrollAnimationWrapper>
+
+            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="300ms">
+              <div className="prose prose-invert prose-sm sm:prose-base max-w-none text-muted-foreground leading-relaxed mb-8">
+                <div dangerouslySetInnerHTML={{ __html: project.longDescription.replace(/\n/g, '<br />') }} />
+              </div>
+            </ScrollAnimationWrapper>
+
+            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="400ms">
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-foreground mb-3">Technologies & Skills:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {project.tags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-sm">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </ScrollAnimationWrapper>
+
+            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="500ms">
+              <div className="flex flex-wrap gap-3">
+                {(project.showLiveUrlButton === undefined || project.showLiveUrlButton) && project.liveUrl && (
+                  <Button asChild>
+                    <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> Live Demo
+                    </a>
+                  </Button>
+                )}
+                {(project.showSourceUrlButton === undefined || project.showSourceUrlButton) && project.sourceUrl && (
+                  <Button variant="outline" asChild>
+                    <a href={project.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      <Github className="mr-2 h-4 w-4" /> View Source
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </ScrollAnimationWrapper>
+          </article>
+        </Container>
+      </main>
+      <Footer />
+    </>
+  );
+}
