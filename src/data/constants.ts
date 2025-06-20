@@ -198,7 +198,7 @@ export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
   { name: 'Contact', href: '#contact' },
 ];
 
-
+export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data"; // Added this export
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
 export const LOCALSTORAGE_TESTIMONIALS_KEY = "admin_testimonials_data";
 export const LOCALSTORAGE_HEADER_NAV_KEY = "admin_header_nav_items";
