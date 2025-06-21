@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
-import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, ATIF_PORTFOLIO_DESCRIPTION, type Project, type AdminMessage, LOCALSTORAGE_MESSAGES_KEY } from '@/data/constants';
+import { PROJECTS_DATA, LOCALSTORAGE_PROJECTS_KEY, ATIF_PORTFOLIO_DESCRIPTION, type Project, type AdminMessage, LOCALSTORAGE_MESSAGES_KEY, type ProjectImage } from '@/data/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -157,18 +157,20 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
     }
     setIsSubmittingServiceInquiry(false);
   };
+  
+  const firstImage = project.images && project.images.length > 0 ? project.images[0] : { url: 'https://placehold.co/600x400.png', hint: 'project placeholder' };
 
   return (
     <ScrollAnimationWrapper animationClassName="animate-fade-in-up">
       <Card className="h-full flex flex-col overflow-hidden bg-card shadow-xl hover:shadow-primary/20 transition-all duration-300 transform hover:-translate-y-1 group">
         <Link href={`/projects/${project.id}`} className="block relative w-full aspect-video overflow-hidden">
           <Image
-            src={project.imageUrl}
+            src={firstImage.url}
             alt={project.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
-            data-ai-hint={project.imageHint || 'project technology'}
+            data-ai-hint={firstImage.hint || 'project technology'}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
@@ -327,32 +329,59 @@ ${aiGeneratedIdeas ? `\n\nAI Suggested Ideas (for reference):\n${aiGeneratedIdea
 }
 
 function ClientProjectsView() {
-  const [projects, setProjects] = useState<Project[]>(PROJECTS_DATA);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let loadedProjects: Project[] = PROJECTS_DATA.map(p => {
+        const images = (p.images && p.images.length > 0) 
+          ? p.images 
+          : (p.imageUrl ? [{ url: p.imageUrl, hint: p.imageHint || 'project image' }] : [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }]);
+        const { imageUrl, imageHint, ...restOfP } = p;
+        return {
+          ...restOfP,
+          images,
+          showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
+          showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+        };
+    });
+
     try {
       const storedProjectsString = localStorage.getItem(LOCALSTORAGE_PROJECTS_KEY);
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
-        if (Array.isArray(storedProjects) && storedProjects.every(p => typeof p.id === 'string')) {
-            // Ensure boolean flags have default values if missing from localStorage
-            const projectsWithDefaults = storedProjects.map(p => ({
-                ...p,
+        
+        if (Array.isArray(storedProjects)) {
+           const projectsWithMigrationAndDefaults = storedProjects.map(p => {
+              let currentImages: ProjectImage[] = p.images || [];
+              if (p.imageUrl && (!p.images || p.images.length === 0)) {
+                  currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
+              }
+              if (currentImages.length === 0) {
+                  currentImages = [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }];
+              }
+              const { imageUrl, imageHint, ...restOfP } = p;
+              return {
+                ...restOfP,
+                images: currentImages,
                 showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
                 showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
-            }));
-          setProjects(projectsWithDefaults);
+              };
+          });
+
+          if (projectsWithMigrationAndDefaults.length > 0 && projectsWithMigrationAndDefaults.every(p => typeof p.id === 'string')) {
+             loadedProjects = projectsWithMigrationAndDefaults;
+          } else if (projectsWithMigrationAndDefaults.length === 0) {
+            loadedProjects = []; 
+          }
         } else {
-          setProjects(PROJECTS_DATA); // Fallback if structure is invalid
+          console.warn("Stored projects data is not an array. Using default projects.");
         }
-      } else {
-        setProjects(PROJECTS_DATA); // Fallback if no data in localStorage
       }
     } catch (error) {
       console.error("Error loading projects from localStorage. Using default projects:", error);
-      setProjects(PROJECTS_DATA); // Fallback on any error
     }
+    setProjects(loadedProjects);
     setIsLoading(false);
   }, []);
 
