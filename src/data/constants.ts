@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer, UI/UX enthusiast, and Professional Graphics Designer with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions, and is also available for Freelance projects.`;
 
 export interface ProjectImage {
+  id: string;
   url: string; // Can be a URL or a Data URI
   hint?: string; // AI hint for this specific image
 }
@@ -31,9 +32,9 @@ export const PROJECTS_DATA: Project[] = [
     description: 'A cutting-edge e-commerce solution with advanced features.',
     longDescription: 'Developed a full-stack e-commerce platform with features like personalized recommendations, secure payment gateway integration (Stripe), and real-time inventory management. Built using Next.js, TypeScript, PostgreSQL, and Tailwind CSS. Focused on scalability and user experience, resulting in a 20% increase in conversion rates for the client.',
     images: [
-      { url: 'https://placehold.co/800x450.png', hint: 'online shopping store' },
-      { url: 'https://placehold.co/800x450.png', hint: 'product page e-commerce' },
-      { url: 'https://placehold.co/800x450.png', hint: 'checkout process secure' },
+      { id: 'p1-img1', url: 'https://placehold.co/800x450.png', hint: 'online shopping store' },
+      { id: 'p1-img2', url: 'https://placehold.co/800x450.png', hint: 'product page e-commerce' },
+      { id: 'p1-img3', url: 'https://placehold.co/800x450.png', hint: 'checkout process secure' },
     ],
     tags: ['Next.js', 'TypeScript', 'E-commerce', 'Stripe'],
     liveUrl: '#',
@@ -47,8 +48,8 @@ export const PROJECTS_DATA: Project[] = [
     description: 'Interactive dashboard for visualizing complex datasets.',
     longDescription: 'Created an interactive data analytics dashboard for a SaaS company, enabling users to visualize key metrics and trends. Used React, D3.js, and Node.js with Express. The dashboard features customizable widgets, data filtering, and export functionalities. Improved data-driven decision-making for stakeholders.',
     images: [
-      { url: 'https://placehold.co/800x450.png', hint: 'charts graphs data' },
-      { url: 'https://placehold.co/800x450.png', hint: 'dashboard interface analytics' },
+      { id: 'p2-img1', url: 'https://placehold.co/800x450.png', hint: 'charts graphs data' },
+      { id: 'p2-img2', url: 'https://placehold.co/800x450.png', hint: 'dashboard interface analytics' },
     ],
     tags: ['React', 'D3.js', 'Node.js', 'SaaS'],
     liveUrl: '#',
@@ -61,7 +62,7 @@ export const PROJECTS_DATA: Project[] = [
     description: 'A web app that leverages AI to generate creative content.',
     longDescription: 'Built an AI-powered content generation tool that assists users in creating marketing copy, blog posts, and social media updates. Integrated with OpenAI API. The front-end was developed with Vue.js and the back-end with Python (Flask). Features included various content templates and tone adjustments.',
     images: [
-      { url: 'https://placehold.co/800x450.png', hint: 'artificial intelligence writing' },
+      { id: 'p3-img1', url: 'https://placehold.co/800x450.png', hint: 'artificial intelligence writing' },
     ],
     tags: ['Vue.js', 'Python', 'AI', 'OpenAI', 'Prompt Engineering'],
     sourceUrl: '#',
@@ -74,8 +75,8 @@ export const PROJECTS_DATA: Project[] = [
     description: 'A React Native app for tracking fitness and wellness.',
     longDescription: 'Designed and developed a cross-platform mobile application using React Native to help users track their fitness activities, set wellness goals, and receive personalized health tips. Integrated with HealthKit and Google Fit. Implemented features like progress charts, reminders, and a social sharing component.',
     images: [
-      { url: 'https://placehold.co/400x700.png', hint: 'mobile app health' },
-      { url: 'https://placehold.co/400x700.png', hint: 'fitness tracker interface' },
+      { id: 'p4-img1', url: 'https://placehold.co/400x700.png', hint: 'mobile app health' },
+      { id: 'p4-img2', url: 'https://placehold.co/400x700.png', hint: 'fitness tracker interface' },
     ],
     tags: ['React Native', 'Mobile', 'HealthTech', 'Firebase'],
     liveUrl: '#',
@@ -372,3 +373,6 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </html>`
 };
 
+
+
+    

@@ -36,7 +36,7 @@ export default function ProjectDetailPage() {
       let projectsToSearch: Project[] = PROJECTS_DATA.map(p => {
         const images = (p.images && p.images.length > 0)
           ? p.images
-          : (p.imageUrl ? [{ url: p.imageUrl, hint: p.imageHint || 'project image' }] : [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }]);
+          : (p.imageUrl ? [{ id: `migrated-${p.id}`, url: p.imageUrl, hint: p.imageHint || 'project image' }] : [{ id: `placeholder-${p.id}`, url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }]);
         return {
           ...p,
           images,
@@ -51,12 +51,16 @@ export default function ProjectDetailPage() {
           const storedProjects: Project[] = JSON.parse(storedProjectsString);
           if (Array.isArray(storedProjects) && storedProjects.length > 0) {
              projectsToSearch = storedProjects.map(p => {
-                let currentImages = p.images || [];
-                if (p.imageUrl && (!p.images || p.images.length === 0)) {
-                    currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
+                let currentImages = (p.images || []).map((img, index) => ({
+                    ...img,
+                    id: img.id || `img-${p.id}-${index}`
+                }));
+
+                if (p.imageUrl && currentImages.length === 0) {
+                    currentImages = [{ id: `migrated-${p.id}`, url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
                 }
                 if (currentImages.length === 0) {
-                    currentImages = [{ url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }];
+                    currentImages = [{ id: `placeholder-${p.id}`, url: 'https://placehold.co/800x450.png', hint: 'project placeholder' }];
                 }
                 const { imageUrl, imageHint, ...restOfProject } = p;
                 return {
@@ -167,17 +171,17 @@ export default function ProjectDetailPage() {
                     setApi={setCarouselApi}
                    >
                     <CarouselContent>
-                      {project.images.map((image, index) => (
-                        <CarouselItem key={index}>
+                      {project.images.map((image) => (
+                        <CarouselItem key={image.id}>
                           <div className="relative w-full aspect-video bg-muted/30 rounded-md">
                             <Image
                               src={image.url}
-                              alt={`${project.title} - Image ${index + 1}`}
+                              alt={`${project.title} - Image for ${image.id}`}
                               fill
                               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 80vw, 60vw"
                               className="object-contain rounded-md"
                               data-ai-hint={image.hint || 'project image detail'}
-                              priority={index === 0}
+                              priority={image.id === project.images[0].id}
                             />
                           </div>
                         </CarouselItem>
@@ -249,3 +253,4 @@ export default function ProjectDetailPage() {
   );
 }
 
+    

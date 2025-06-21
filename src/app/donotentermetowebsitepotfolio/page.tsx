@@ -243,11 +243,9 @@ function ProjectsEditor() {
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    let initialProjects = PROJECTS_DATA.map(p => ({
+    let initialProjects: Project[] = PROJECTS_DATA.map(p => ({
       ...p,
-      images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
-      showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
-      showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
+      images: p.images.map(img => ({ ...img, id: img.id || `img-${Math.random()}` })),
     }));
 
     try {
@@ -255,12 +253,16 @@ function ProjectsEditor() {
       if (storedProjectsString) {
         const storedProjects: Project[] = JSON.parse(storedProjectsString);
         initialProjects = storedProjects.map(p => {
-          let currentImages = p.images || [];
-          if (p.imageUrl && (!p.images || p.images.length === 0)) {
-              currentImages = [{ url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
+          let currentImages: ProjectImage[] = (p.images || []).map((img, index) => ({
+            ...img,
+            id: img.id || `img-${Date.now()}-${index}`, // Add id if missing
+          }));
+
+          if (p.imageUrl && currentImages.length === 0) {
+            currentImages = [{ id: `img-migrated-${Date.now()}`, url: p.imageUrl, hint: p.imageHint || 'migrated image' }];
           }
           if (currentImages.length === 0) {
-              currentImages = [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }];
+            currentImages = [{ id: `img-placeholder-${Date.now()}`, url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }];
           }
           
           const { imageUrl, imageHint, ...restOfP } = p;
@@ -294,21 +296,25 @@ function ProjectsEditor() {
     setProjects(updatedProjects);
   };
 
-  const handleImageChange = (projIndex: number, imgIndex: number, field: keyof ProjectImage, value: string) => {
+  const handleImageChange = (projIndex: number, imgId: string, field: keyof ProjectImage, value: string) => {
     const updatedProjects = [...projects];
-    const projectImages = [...(updatedProjects[projIndex].images || [])];
-    projectImages[imgIndex] = { ...projectImages[imgIndex], [field]: value };
+    const projectImages = updatedProjects[projIndex].images.map(img => {
+      if (img.id === imgId) {
+        return { ...img, [field]: value };
+      }
+      return img;
+    });
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
   };
 
-  const handleImageFileChange = (projIndex: number, imgIndex: number, event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (projIndex: number, imgId: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleImageChange(projIndex, imgIndex, 'url', reader.result as string);
-        toast({ title: "Image Preview Ready", description: `Image ${imgIndex + 1} for project '${projects[projIndex].title}' updated.` });
+        handleImageChange(projIndex, imgId, 'url', reader.result as string);
+        toast({ title: "Image Preview Ready", description: `Image for project '${projects[projIndex].title}' updated.` });
       };
       reader.readAsDataURL(file);
     }
@@ -317,22 +323,21 @@ function ProjectsEditor() {
   const handleAddImageToProject = (projIndex: number) => {
     const updatedProjects = [...projects];
     const projectImages = [...(updatedProjects[projIndex].images || [])];
-    projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'new image' });
+    projectImages.push({ id: `img-${Date.now()}`, url: 'https://placehold.co/600x400.png', hint: 'new image' });
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
     toast({ title: "Image Slot Added", description: `Added new image slot to '${projects[projIndex].title}'.` });
   };
 
-  const handleRemoveImageFromProject = (projIndex: number, imgIndex: number) => {
+  const handleRemoveImageFromProject = (projIndex: number, imgId: string) => {
     const updatedProjects = [...projects];
-    let projectImages = [...(updatedProjects[projIndex].images || [])];
-    projectImages.splice(imgIndex, 1);
+    let projectImages = updatedProjects[projIndex].images.filter(img => img.id !== imgId);
     if (projectImages.length === 0) {
-        projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
+      projectImages.push({ id: `img-placeholder-${Date.now()}`, url: 'https://placehold.co/600x400.png', hint: 'project placeholder' });
     }
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
-    toast({ title: "Image Removed", description: `Image ${imgIndex + 1} removed from '${projects[projIndex].title}'.` });
+    toast({ title: "Image Removed", description: `Image removed from '${projects[projIndex].title}'.` });
   };
 
   const handleAddProject = () => {
@@ -341,7 +346,7 @@ function ProjectsEditor() {
       title: 'New Project',
       description: 'Short description for new project.',
       longDescription: 'Detailed description for new project.',
-      images: [{ url: 'https://placehold.co/600x400.png', hint: 'new project' }],
+      images: [{ id: `img-new-${Date.now()}`, url: 'https://placehold.co/600x400.png', hint: 'new project' }],
       tags: ['New Tag'],
       liveUrl: '',
       showLiveUrlButton: true,
@@ -359,7 +364,7 @@ function ProjectsEditor() {
   const handleReset = () => {
     const defaultFormattedProjects = PROJECTS_DATA.map(p => ({
         ...p,
-        images: p.images && p.images.length > 0 ? p.images : [{ url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
+        images: p.images && p.images.length > 0 ? p.images : [{ id: `img-default-${Date.now()}`, url: 'https://placehold.co/600x400.png', hint: 'project placeholder' }],
         showLiveUrlButton: p.showLiveUrlButton === undefined ? true : p.showLiveUrlButton,
         showSourceUrlButton: p.showSourceUrlButton === undefined ? true : p.showSourceUrlButton,
     }));
@@ -392,19 +397,19 @@ function ProjectsEditor() {
 
             <div className="space-y-4 mt-4 border-t border-border pt-4">
               <Label className="text-md font-semibold">Project Images</Label>
-              {(project.images || []).map((img, imgIndex) => (
-                <Card key={`project-${projIndex}-img-${imgIndex}`} className="p-3 bg-card/50 space-y-2">
-                  <Label htmlFor={`project-${projIndex}-imgurl-${imgIndex}`}>Image {imgIndex + 1}</Label>
-                  <Input id={`project-${projIndex}-imgurl-${imgIndex}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(projIndex, imgIndex, e)} className="bg-input"/>
+              {(project.images || []).map((img) => (
+                <Card key={img.id} className="p-3 bg-card/50 space-y-2">
+                  <Label htmlFor={`project-${projIndex}-imgurl-${img.id}`}>Image</Label>
+                  <Input id={`project-${projIndex}-imgurl-${img.id}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(projIndex, img.id, e)} className="bg-input"/>
                   {img.url && (
                     <div className="mt-2 relative w-full aspect-video max-w-xs">
-                      <Image src={img.url} alt={`Preview ${imgIndex+1}`} fill className="object-contain rounded"/>
+                      <Image src={img.url} alt={`Preview ${img.id}`} fill className="object-contain rounded"/>
                     </div>
                   )}
-                  <Label htmlFor={`project-${projIndex}-imghint-${imgIndex}`}>Image AI Hint (1-2 words)</Label>
-                  <Input id={`project-${projIndex}-imghint-${imgIndex}`} value={img.hint || ""} onChange={(e) => handleImageChange(projIndex, imgIndex, 'hint', e.target.value)} className="bg-input"/>
-                  <Button variant="ghost" size="sm" onClick={() => handleRemoveImageFromProject(projIndex, imgIndex)} className="text-destructive hover:text-destructive/80">
-                    <XCircle className="mr-1 h-4 w-4"/> Remove Image {imgIndex + 1}
+                  <Label htmlFor={`project-${projIndex}-imghint-${img.id}`}>Image AI Hint (1-2 words)</Label>
+                  <Input id={`project-${projIndex}-imghint-${img.id}`} value={img.hint || ""} onChange={(e) => handleImageChange(projIndex, img.id, 'hint', e.target.value)} className="bg-input"/>
+                  <Button variant="ghost" size="sm" onClick={() => handleRemoveImageFromProject(projIndex, img.id)} className="text-destructive hover:text-destructive/80">
+                    <XCircle className="mr-1 h-4 w-4"/> Remove Image
                   </Button>
                 </Card>
               ))}
@@ -1829,3 +1834,5 @@ export default function AdminPage() {
   
   return <AdminPanelClient />;
 }
+
+    
