@@ -589,7 +589,6 @@ function ContactEditor() {
         const parsedInfo = JSON.parse(storedContactInfo);
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
             parsedInfo.whatsappNumber = parsedInfo.phone;
-            // delete parsedInfo.phone; // Not strictly necessary as it will be overwritten by spread or ignored
         }
         setContactInfo(parsedInfo);
       } catch (e) {
@@ -1732,7 +1731,7 @@ function AdminDashboard() {
 }
 
 
-export default function AdminPage() {
+function AdminPanelClient() {
   const [secretKey, setSecretKey] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
@@ -1807,3 +1806,20 @@ export default function AdminPage() {
     </div>
   );
 }
+
+
+export default function AdminPage() {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <AdminPanelClient />;
+}
+
+    
