@@ -388,7 +388,7 @@ function ProjectsEditor() {
                   <Input id={`project-${projIndex}-imgurl-${imgIndex}`} type="file" accept="image/*" onChange={(e) => handleImageFileChange(projIndex, imgIndex, e)} className="bg-input"/>
                   {img.url && (
                     <div className="mt-2 relative w-full aspect-video max-w-xs">
-                      <Image src={img.url} alt={`Preview ${imgIndex+1}`} layout="fill" objectFit="contain" className="rounded"/>
+                      <Image src={img.url} alt={`Preview ${imgIndex+1}`} fill className="object-contain rounded"/>
                     </div>
                   )}
                   <Label htmlFor={`project-${projIndex}-imghint-${imgIndex}`}>Image AI Hint (1-2 words)</Label>
@@ -552,7 +552,7 @@ function TestimonialsEditor() {
               </p>
               {testimonial.avatarUrl && (
                 <div className="mt-2 relative w-24 h-24">
-                  <Image src={testimonial.avatarUrl} alt="Avatar Preview" layout="fill" objectFit="cover" className="rounded-full"/>
+                  <Image src={testimonial.avatarUrl} alt="Avatar Preview" fill className="rounded-full object-cover"/>
                 </div>
               )}
             </div>
@@ -1807,5 +1807,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
