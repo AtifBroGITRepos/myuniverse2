@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent, useRef } from 'react';
 import Image from 'next/image';
 import { Container } from '@/components/shared/Container';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ function AboutEditor() {
   const [aboutText, setAboutText] = useState(ATIF_PORTFOLIO_DESCRIPTION);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedAboutText = localStorage.getItem(LOCALSTORAGE_ABOUT_KEY);
@@ -51,10 +52,13 @@ function AboutEditor() {
     }
   }, []);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     localStorage.setItem(LOCALSTORAGE_ABOUT_KEY, aboutText);
-    toast({ title: "Success!", description: "About Me text saved to local storage." });
-  };
+  }, [aboutText]);
 
   const handleReset = () => {
     setAboutText(ATIF_PORTFOLIO_DESCRIPTION);
@@ -73,7 +77,7 @@ function AboutEditor() {
       const result = await generateAboutText(input);
       if (result.suggestedText) {
         setAboutText(result.suggestedText);
-        toast({ title: "AI Suggestion Applied!", description: "New About Me text generated." });
+        toast({ title: "AI Suggestion Applied!", description: "New About Me text generated and autosaved." });
       } else {
         toast({ title: "AI Suggestion", description: "AI did not provide a new suggestion.", variant: "default" });
       }
@@ -89,7 +93,7 @@ function AboutEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>About Me Editor</CardTitle>
-        <CardDescription>Edit the "About Me" section text. Changes are saved locally.</CardDescription>
+        <CardDescription>Edit the "About Me" section text. Changes are saved automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Textarea
@@ -108,7 +112,6 @@ function AboutEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -119,6 +122,7 @@ const serviceIconOptions: ServiceIconName[] = ['Server', 'Palette', 'Briefcase',
 function ServicesEditor() {
   const [services, setServices] = useState<Service[]>(SERVICES_DATA);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedServices = localStorage.getItem(LOCALSTORAGE_SERVICES_KEY);
@@ -135,6 +139,14 @@ function ServicesEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_SERVICES_KEY, JSON.stringify(services));
+  }, [services]);
+
   const handleServiceChange = (index: number, field: keyof Service, value: string) => {
     const updatedServices = [...services];
     updatedServices[index] = { ...updatedServices[index], [field]: value };
@@ -149,17 +161,12 @@ function ServicesEditor() {
 
   const handleAddService = () => {
     setServices([...services, { id: `service-${Date.now()}`, title: '', description: '', iconName: 'Server' }]);
-    toast({ title: "Service Added", description: "A new service template has been added. Remember to save." });
+    toast({ title: "Service Added", description: "A new service template has been added." });
   };
 
   const handleRemoveService = (index: number) => {
     setServices(services.filter((_, i) => i !== index));
-    toast({ title: "Service Removed", description: "The service has been removed. Remember to save your changes.", variant: "default" });
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_SERVICES_KEY, JSON.stringify(services));
-    toast({ title: "Success!", description: "Services data saved to local storage." });
+    toast({ title: "Service Removed", description: "The service has been removed.", variant: "default" });
   };
 
   const handleReset = () => {
@@ -172,7 +179,7 @@ function ServicesEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Services Editor</CardTitle>
-        <CardDescription>Edit the services offered. Changes are saved locally.</CardDescription>
+        <CardDescription>Edit the services offered. Changes are saved automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {services.map((service, index) => (
@@ -225,7 +232,6 @@ function ServicesEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -234,6 +240,7 @@ function ServicesEditor() {
 function ProjectsEditor() {
   const [projects, setProjects] = useState<Project[]>([]);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     let initialProjects = PROJECTS_DATA.map(p => ({
@@ -273,6 +280,14 @@ function ProjectsEditor() {
     setProjects(initialProjects);
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
+  }, [projects]);
+
   const handleProjectChange = (projIndex: number, field: keyof Project, value: any) => {
     const updatedProjects = [...projects];
     updatedProjects[projIndex] = { ...updatedProjects[projIndex], [field]: value };
@@ -293,7 +308,7 @@ function ProjectsEditor() {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleImageChange(projIndex, imgIndex, 'url', reader.result as string);
-        toast({ title: "Image Preview Ready", description: `Image ${imgIndex + 1} for project '${projects[projIndex].title}' updated. Remember to save.` });
+        toast({ title: "Image Preview Ready", description: `Image ${imgIndex + 1} for project '${projects[projIndex].title}' updated.` });
       };
       reader.readAsDataURL(file);
     }
@@ -305,7 +320,7 @@ function ProjectsEditor() {
     projectImages.push({ url: 'https://placehold.co/600x400.png', hint: 'new image' });
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
-    toast({ title: "Image Slot Added", description: `Added new image slot to '${projects[projIndex].title}'. Upload an image and save.` });
+    toast({ title: "Image Slot Added", description: `Added new image slot to '${projects[projIndex].title}'.` });
   };
 
   const handleRemoveImageFromProject = (projIndex: number, imgIndex: number) => {
@@ -317,7 +332,7 @@ function ProjectsEditor() {
     }
     updatedProjects[projIndex].images = projectImages;
     setProjects(updatedProjects);
-    toast({ title: "Image Removed", description: `Image ${imgIndex + 1} removed from '${projects[projIndex].title}'. Remember to save.` });
+    toast({ title: "Image Removed", description: `Image ${imgIndex + 1} removed from '${projects[projIndex].title}'.` });
   };
 
   const handleAddProject = () => {
@@ -333,17 +348,12 @@ function ProjectsEditor() {
       sourceUrl: '',
       showSourceUrlButton: true,
     }]);
-    toast({ title: "Project Added", description: "A new project template has been added. Remember to save." });
+    toast({ title: "Project Added", description: "A new project template has been added." });
   };
 
   const handleRemoveProject = (index: number) => {
     setProjects(projects.filter((_, i) => i !== index));
-    toast({ title: "Project Removed", description: "The project has been removed. Remember to save your changes.", variant: "default" });
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
-    toast({ title: "Success!", description: "Projects data saved to local storage." });
+    toast({ title: "Project Removed", description: "The project has been removed.", variant: "default" });
   };
 
   const handleReset = () => {
@@ -362,7 +372,7 @@ function ProjectsEditor() {
      <Card className="w-full">
       <CardHeader>
         <CardTitle>Projects Editor</CardTitle>
-        <CardDescription>Edit project details. Manage multiple images per project. Images are saved as Data URIs in local storage. Toggle visibility of Live Demo and Source buttons.</CardDescription>
+        <CardDescription>Edit project details. Changes are saved automatically. Manage multiple images per project. Toggle visibility of Live Demo and Source buttons.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {projects.map((project, projIndex) => (
@@ -446,7 +456,6 @@ function ProjectsEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -455,6 +464,7 @@ function ProjectsEditor() {
 function TestimonialsEditor() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(TESTIMONIALS_DATA);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedTestimonials = localStorage.getItem(LOCALSTORAGE_TESTIMONIALS_KEY);
@@ -471,6 +481,14 @@ function TestimonialsEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_TESTIMONIALS_KEY, JSON.stringify(testimonials));
+  }, [testimonials]);
+
   const handleTestimonialChange = (index: number, field: keyof Testimonial, value: string) => {
     const updatedTestimonials = [...testimonials];
     updatedTestimonials[index] = { ...updatedTestimonials[index], [field]: value };
@@ -483,7 +501,7 @@ function TestimonialsEditor() {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleTestimonialChange(index, 'avatarUrl', reader.result as string);
-        toast({ title: "Avatar Preview Ready", description: "Image updated. Remember to save." });
+        toast({ title: "Avatar Preview Ready", description: "Image updated." });
       };
       reader.readAsDataURL(file);
     }
@@ -499,17 +517,12 @@ function TestimonialsEditor() {
       avatarUrl: 'https://placehold.co/100x100.png',
       avatarHint: 'person',
     }]);
-    toast({ title: "Testimonial Added", description: "New testimonial template added. Remember to save." });
+    toast({ title: "Testimonial Added", description: "New testimonial template added." });
   };
 
   const handleRemoveTestimonial = (index: number) => {
     setTestimonials(testimonials.filter((_, i) => i !== index));
-    toast({ title: "Testimonial Removed", description: "Testimonial removed. Remember to save your changes.", variant: "default" });
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_TESTIMONIALS_KEY, JSON.stringify(testimonials));
-    toast({ title: "Success!", description: "Testimonials data saved to local storage." });
+    toast({ title: "Testimonial Removed", description: "Testimonial removed.", variant: "default" });
   };
 
   const handleReset = () => {
@@ -522,7 +535,7 @@ function TestimonialsEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Testimonials Editor</CardTitle>
-        <CardDescription>Manage client and colleague testimonials. Avatar images are saved as Data URIs.</CardDescription>
+        <CardDescription>Manage client and colleague testimonials. Changes are saved automatically. Avatar images are saved as Data URIs.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {testimonials.map((testimonial, index) => (
@@ -571,7 +584,6 @@ function TestimonialsEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -581,6 +593,7 @@ function TestimonialsEditor() {
 function ContactEditor() {
   const [contactInfo, setContactInfo] = useState<ContactDetails>(CONTACT_INFO);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
@@ -601,6 +614,14 @@ function ContactEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_CONTACT_KEY, JSON.stringify(contactInfo));
+  }, [contactInfo]);
+
   const handleChange = (field: keyof ContactDetails | `socials.${keyof ContactDetails['socials']}`, value: string) => {
     if (field.startsWith('socials.')) {
       const socialKey = field.split('.')[1] as keyof ContactDetails['socials'];
@@ -613,11 +634,6 @@ function ContactEditor() {
     }
   };
 
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_CONTACT_KEY, JSON.stringify(contactInfo));
-    toast({ title: "Success!", description: "Contact info saved to local storage." });
-  };
-
   const handleReset = () => {
     setContactInfo(CONTACT_INFO);
     localStorage.removeItem(LOCALSTORAGE_CONTACT_KEY);
@@ -628,7 +644,7 @@ function ContactEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Contact Information Editor</CardTitle>
-        <CardDescription>Edit contact details and social media links.</CardDescription>
+        <CardDescription>Edit contact details and social media links. Changes are saved automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -665,7 +681,6 @@ function ContactEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -674,6 +689,7 @@ function ContactEditor() {
 function HeaderNavEditor() {
   const [navItems, setNavItems] = useState<NavItem[]>(HEADER_NAV_ITEMS_DATA);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedNavItems = localStorage.getItem(LOCALSTORAGE_HEADER_NAV_KEY);
@@ -690,6 +706,14 @@ function HeaderNavEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
+  }, [navItems]);
+
   const handleNavItemChange = (index: number, field: keyof NavItem, value: string | boolean) => {
     const updatedNavItems = [...navItems];
      if (field === 'isExternal') {
@@ -702,17 +726,12 @@ function HeaderNavEditor() {
 
   const handleAddNavItem = () => {
     setNavItems([...navItems, { name: 'New Item', href: '#', isExternal: false }]);
-    toast({ title: "Nav Item Added", description: "A new navigation item has been added. Remember to save." });
+    toast({ title: "Nav Item Added", description: "A new navigation item has been added." });
   };
 
   const handleRemoveNavItem = (index: number) => {
     setNavItems(navItems.filter((_, i) => i !== index));
-    toast({ title: "Nav Item Removed", description: "Navigation item removed. Remember to save." });
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_HEADER_NAV_KEY, JSON.stringify(navItems));
-    toast({ title: "Success!", description: "Header navigation items saved to local storage." });
+    toast({ title: "Nav Item Removed", description: "Navigation item removed." });
   };
 
   const handleReset = () => {
@@ -725,7 +744,7 @@ function HeaderNavEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Header Navigation Editor</CardTitle>
-        <CardDescription>Edit the text, links, and target for the main site navigation. Changes are saved locally.</CardDescription>
+        <CardDescription>Edit the text, links, and target for the main site navigation. Changes are saved automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {navItems.map((item, index) => (
@@ -768,7 +787,6 @@ function HeaderNavEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Default</Button>
-        <Button onClick={handleSave}>Save to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -1435,6 +1453,7 @@ function AdminMailSender() {
 function EmailTemplatesEditor() {
   const [templates, setTemplates] = useState<EmailTemplates>(DEFAULT_EMAIL_TEMPLATES);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedTemplates = localStorage.getItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
@@ -1451,19 +1470,22 @@ function EmailTemplatesEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY, JSON.stringify(templates));
+  }, [templates]);
+
   const handleTemplateChange = (templateName: keyof EmailTemplates, value: string) => {
     setTemplates(prev => ({ ...prev, [templateName]: value }));
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY, JSON.stringify(templates));
-    toast({ title: "Success!", description: "Email templates saved to local storage." });
   };
 
   const handleReset = () => {
     setTemplates(DEFAULT_EMAIL_TEMPLATES);
     localStorage.removeItem(LOCALSTORAGE_EMAIL_TEMPLATES_KEY);
-    toast({ title: "Reset Successful", description: "Email templates reset to default values (from constants.ts)." });
+    toast({ title: "Reset Successful", description: "Email templates reset to default values." });
   };
 
   const availablePlaceholders = [
@@ -1484,7 +1506,7 @@ function EmailTemplatesEditor() {
         <CardTitle>Email Template Editor</CardTitle>
         <CardDescription className="space-y-1">
           <div>
-            Customize the HTML templates for emails sent by the system. Templates are saved in your browser's local storage.
+            Customize the HTML templates for emails sent by the system. Changes are saved automatically.
           </div>
           <div className="font-semibold text-primary/90 p-2 border border-primary/30 rounded-md bg-primary/10">
             <MessageCircleQuestion className="inline-block h-4 w-4 mr-1 text-primary"/>
@@ -1495,7 +1517,7 @@ function EmailTemplatesEditor() {
               <li>Paste it into the corresponding HTML string variable within the <code className="text-xs bg-muted p-1 rounded">src/app/actions/send-inquiry-email.ts</code> file on your server.</li>
               <li>Redeploy your application for the changes to take effect on the server.</li>
             </ol>
-            This editor helps you design and manage the templates locally before updating the server code. The default templates here are now in sync with `send-inquiry-email.ts`.
+            This editor helps you design and manage the templates locally before updating the server code.
           </div>
         </CardDescription>
       </CardHeader>
@@ -1506,8 +1528,7 @@ function EmailTemplatesEditor() {
             {availablePlaceholders.map(p => <li key={p.name}><strong>{p.name}</strong>: {p.desc}</li>)}
           </ul>
            <p className="text-xs text-primary/80 mt-2">
-             Note: Placeholders ending in `HTML` (e.g., `{{userMessageHTML}}`, `{{aiGeneratedSummaryHTML}}`) are processed by the server action to convert newlines to &lt;br/&gt; and structure the content.
-             The actual replacement logic is in `send-inquiry-email.ts`.
+             Note: The actual replacement logic is in `send-inquiry-email.ts`.
            </p>
         </div>
 
@@ -1529,7 +1550,6 @@ function EmailTemplatesEditor() {
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Defaults</Button>
-        <Button onClick={handleSave}>Save Templates to Local Storage</Button>
       </CardFooter>
     </Card>
   );
@@ -1538,6 +1558,7 @@ function EmailTemplatesEditor() {
 function SiteSettingsEditor() {
   const [siteInfo, setSiteInfo] = useState<SiteInfo>(DEFAULT_SITE_INFO);
   const { toast } = useToast();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const storedSiteInfo = localStorage.getItem(LOCALSTORAGE_SITE_INFO_KEY);
@@ -1554,13 +1575,17 @@ function SiteSettingsEditor() {
     }
   }, [toast]);
 
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    localStorage.setItem(LOCALSTORAGE_SITE_INFO_KEY, JSON.stringify(siteInfo));
+  }, [siteInfo]);
+
+
   const handleChange = (field: keyof SiteInfo, value: string) => {
     setSiteInfo(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_SITE_INFO_KEY, JSON.stringify(siteInfo));
-    toast({ title: "Success!", description: "Site settings saved to local storage. Changes will apply on next page load/refresh." });
   };
 
   const handleReset = () => {
@@ -1574,7 +1599,7 @@ function SiteSettingsEditor() {
       <CardHeader>
         <CardTitle>Site Information & SEO Settings</CardTitle>
         <CardDescription>
-          Manage general website information and default SEO settings. These settings are saved locally and applied dynamically.
+          Manage general website information and default SEO settings. These settings are saved automatically and applied dynamically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -1587,7 +1612,7 @@ function SiteSettingsEditor() {
             className="bg-input"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            This name appears in the site header. To change the name used in automated emails, you need to manually edit the `siteName` variable in `src/app/actions/send-inquiry-email.ts` and redeploy.
+            This name appears in the site header.
           </p>
         </div>
         <div>
@@ -1636,30 +1661,13 @@ function SiteSettingsEditor() {
               <UploadCloud className="h-5 w-5 text-muted-foreground" />
               <AlertTitle className="text-sm font-semibold text-foreground">How to Change Your Favicon</AlertTitle>
               <AlertDescription className="text-xs text-muted-foreground space-y-1">
-                <p>Direct favicon upload from the admin panel is not supported due to server file system restrictions.</p>
-                <p>To update your site's favicon:</p>
-                <ol className="list-decimal list-inside ml-4">
-                  <li>Prepare your new favicon files (e.g., <code className="text-xs bg-muted px-1 rounded">favicon.ico</code>, <code className="text-xs bg-muted px-1 rounded">apple-touch-icon.png</code>, <code className="text-xs bg-muted px-1 rounded">icon.svg</code>).</li>
-                  <li>In your project's code, navigate to the <code className="text-xs bg-muted px-1 rounded">public/</code> directory.</li>
-                  <li>Replace the existing favicon files with your new ones. Ensure the filenames match those referenced in your layout.</li>
-                  <li>
-                    If you use different filenames or add new favicon types, update the <code className="text-xs bg-muted px-1 rounded">&lt;link&gt;</code> tags in the <code className="text-xs bg-muted px-1 rounded">&lt;head&gt;</code> section of your <code className="text-xs bg-muted px-1 rounded">src/app/layout.tsx</code> file. Common tags are already included there:
-                    <ul className="list-disc list-inside ml-4 mt-1">
-                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="icon" href="/favicon.ico" sizes="any" /&gt;</code></li>
-                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="icon" href="/icon.svg" type="image/svg+xml" /&gt;</code></li>
-                      <li><code className="text-xs bg-muted px-0.5 rounded">&lt;link rel="apple-touch-icon" href="/apple-touch-icon.png" /&gt;</code></li>
-                    </ul>
-                  </li>
-                  <li>Re-build and re-deploy your application.</li>
-                </ol>
-                <p className="mt-2">This manual process ensures favicons are correctly handled by Next.js's static asset system.</p>
+                <p>To update your site's favicon, replace the favicon files in the <code className="text-xs bg-muted px-1 rounded">public/</code> directory and redeploy.</p>
               </AlertDescription>
             </Alert>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" onClick={handleReset}>Reset to Defaults</Button>
-        <Button onClick={handleSave}>Save Site Settings</Button>
       </CardFooter>
     </Card>
   );
@@ -1671,7 +1679,7 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-foreground">Admin Dashboard</h2>
-        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved to local storage unless otherwise specified.</p>
+        <p className="text-muted-foreground">Manage your portfolio content here. Changes are saved automatically.</p>
       </div>
 
       <Tabs defaultValue="about" className="w-full">
@@ -1821,5 +1829,3 @@ export default function AdminPage() {
   
   return <AdminPanelClient />;
 }
-
-    
