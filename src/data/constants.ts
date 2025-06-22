@@ -181,26 +181,33 @@ export const SERVICES_DATA: Service[] = [
   },
 ];
 
+export const SOCIAL_PLATFORMS = ['Github', 'Linkedin', 'Twitter', 'Instagram', 'Facebook', 'Youtube', 'Other'] as const;
+export type SocialPlatform = typeof SOCIAL_PLATFORMS[number];
+
+export interface SocialLink {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+}
+
 export interface ContactDetails {
   email: string;
-  whatsappNumber: string; // Changed from phone
+  whatsappNumber: string;
   location: string;
-  socials: {
-    github: string;
-    linkedin: string;
-    twitter: string;
-  }
+  socials: SocialLink[];
 }
+
 export const CONTACT_INFO: ContactDetails = {
   email: "atif.codes@example.com",
-  whatsappNumber: "15551234567", // Example: country code + number, no symbols for wa.me link
+  whatsappNumber: "15551234567",
   location: "Cyberjaya, Malaysia",
-  socials: {
-    github: "https://github.com/atif",
-    linkedin: "https://linkedin.com/in/atif",
-    twitter: "https://twitter.com/atif",
-  }
+  socials: [
+    { id: 'social-1', platform: 'Github', url: "https://github.com/atif" },
+    { id: 'social-2', platform: 'Linkedin', url: "https://linkedin.com/in/atif" },
+    { id: 'social-3', platform: 'Twitter', url: "https://twitter.com/atif" },
+  ],
 };
+
 
 export interface AdminMessage {
   id: string;
@@ -384,5 +391,3 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
-
-    

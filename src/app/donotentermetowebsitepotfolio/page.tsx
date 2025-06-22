@@ -21,7 +21,8 @@ import {
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
-  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, DEFAULT_ABOUT_CONTENT, type AboutContent
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, DEFAULT_ABOUT_CONTENT, type AboutContent,
+  type SocialLink, type SocialPlatform, SOCIAL_PLATFORMS,
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -696,19 +697,33 @@ function ContactEditor() {
   useEffect(() => {
     const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
     if (storedContactInfo) {
-       try {
+      try {
         const parsedInfo = JSON.parse(storedContactInfo);
+        // Migration and validation logic
         if (parsedInfo.phone && !parsedInfo.whatsappNumber) {
-            parsedInfo.whatsappNumber = parsedInfo.phone;
+          parsedInfo.whatsappNumber = parsedInfo.phone;
+          delete parsedInfo.phone;
         }
+        if (parsedInfo.socials && typeof parsedInfo.socials === 'object' && !Array.isArray(parsedInfo.socials)) {
+            // Old structure, migrate to new array structure
+            parsedInfo.socials = Object.entries(parsedInfo.socials).map(([platform, url], index) => ({
+                id: `social-migrated-${index}`,
+                platform: platform.charAt(0).toUpperCase() + platform.slice(1) as SocialPlatform,
+                url: url as string
+            })).filter(s => SOCIAL_PLATFORMS.includes(s.platform));
+        }
+        if (!Array.isArray(parsedInfo.socials)) {
+             parsedInfo.socials = CONTACT_INFO.socials;
+        }
+
         setContactInfo(parsedInfo);
       } catch (e) {
-        console.error("Error parsing contact info from localStorage", e);
-        setContactInfo(CONTACT_INFO); 
-        toast({ title: "Load Error", description: "Could not load saved contact info, reset to default.", variant: "destructive" });
+        console.error("Error parsing/migrating contact info from localStorage", e);
+        setContactInfo(CONTACT_INFO);
+        toast({ title: "Load Error", description: "Could not load contact info, reset to default.", variant: "destructive" });
       }
     } else {
-      setContactInfo(CONTACT_INFO); 
+      setContactInfo(CONTACT_INFO);
     }
   }, [toast]);
 
@@ -720,16 +735,36 @@ function ContactEditor() {
     localStorage.setItem(LOCALSTORAGE_CONTACT_KEY, JSON.stringify(contactInfo));
   }, [contactInfo]);
 
-  const handleChange = (field: keyof ContactDetails | `socials.${keyof ContactDetails['socials']}`, value: string) => {
-    if (field.startsWith('socials.')) {
-      const socialKey = field.split('.')[1] as keyof ContactDetails['socials'];
-      setContactInfo(prev => ({
-        ...prev,
-        socials: { ...prev.socials, [socialKey]: value }
-      }));
-    } else {
-      setContactInfo(prev => ({ ...prev, [field as keyof ContactDetails]: value }));
-    }
+  const handleChange = (field: keyof Omit<ContactDetails, 'socials'>, value: string) => {
+    setContactInfo(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSocialChange = (id: string, field: keyof Omit<SocialLink, 'id'>, value: string) => {
+    setContactInfo(prev => ({
+      ...prev,
+      socials: prev.socials.map(social => 
+        social.id === id ? { ...social, [field]: value } : social
+      )
+    }));
+  };
+
+  const handleAddSocialLink = () => {
+    setContactInfo(prev => ({
+      ...prev,
+      socials: [
+        ...prev.socials,
+        { id: `social-${Date.now()}`, platform: 'Other', url: '' }
+      ]
+    }));
+    toast({ title: "Social Link Added" });
+  };
+
+  const handleRemoveSocialLink = (id: string) => {
+    setContactInfo(prev => ({
+      ...prev,
+      socials: prev.socials.filter(s => s.id !== id)
+    }));
+    toast({ title: "Social Link Removed", variant: 'default' });
   };
 
   const handleReset = () => {
@@ -763,18 +798,52 @@ function ContactEditor() {
           <Label htmlFor="contact-location">Location</Label>
           <Input id="contact-location" value={contactInfo.location} onChange={e => handleChange('location', e.target.value)} className="bg-input"/>
         </div>
-        <h4 className="font-medium pt-2">Social Links</h4>
-        <div>
-          <Label htmlFor="contact-github">GitHub URL</Label>
-          <Input id="contact-github" value={contactInfo.socials.github} onChange={e => handleChange('socials.github', e.target.value)} className="bg-input"/>
-        </div>
-        <div>
-          <Label htmlFor="contact-linkedin">LinkedIn URL</Label>
-          <Input id="contact-linkedin" value={contactInfo.socials.linkedin} onChange={e => handleChange('socials.linkedin', e.target.value)} className="bg-input"/>
-        </div>
-        <div>
-          <Label htmlFor="contact-twitter">Twitter URL</Label>
-          <Input id="contact-twitter" value={contactInfo.socials.twitter} onChange={e => handleChange('socials.twitter', e.target.value)} className="bg-input"/>
+        
+        <h4 className="font-medium pt-4 mt-4 border-t border-border">Social Links</h4>
+        <div className="space-y-4 pt-2">
+          {contactInfo.socials.map((social) => (
+            <Card key={social.id} className="p-3 bg-secondary/30">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <Label htmlFor={`social-platform-${social.id}`}>Platform</Label>
+                  <Select
+                    value={social.platform}
+                    onValueChange={(value: SocialPlatform) => handleSocialChange(social.id, 'platform', value)}
+                  >
+                    <SelectTrigger id={`social-platform-${social.id}`} className="bg-input">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOCIAL_PLATFORMS.map(p => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-[2]">
+                  <Label htmlFor={`social-url-${social.id}`}>URL</Label>
+                  <Input
+                    id={`social-url-${social.id}`}
+                    value={social.url}
+                    onChange={e => handleSocialChange(social.id, 'url', e.target.value)}
+                    className="bg-input"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleRemoveSocialLink(social.id)}
+                className="mt-3"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Remove
+              </Button>
+            </Card>
+          ))}
+          <Button variant="outline" onClick={handleAddSocialLink} className="w-full">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Social Link
+          </Button>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
@@ -783,6 +852,7 @@ function ContactEditor() {
     </Card>
   );
 }
+
 
 function HeaderNavEditor() {
   const [navItems, setNavItems] = useState<NavItem[]>(HEADER_NAV_ITEMS_DATA);
@@ -1982,5 +2052,3 @@ export default function AdminPage() {
   
   return <AdminPanelClient />;
 }
-
-    

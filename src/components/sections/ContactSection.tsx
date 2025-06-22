@@ -11,9 +11,18 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { sendInquiryEmails } from '@/app/actions/send-inquiry-email';
 import { summarizeSingleMessage } from '@/ai/flows/summarize-single-message-flow'; 
-import { Send, Mail, MapPin, MessageSquare, Sparkles } from 'lucide-react'; // Changed Phone to MessageSquare
-import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage, CONTACT_INFO, LOCALSTORAGE_CONTACT_KEY, type ContactDetails } from '@/data/constants';
+import { Send, Mail, MapPin, MessageSquare, Sparkles, Github, Linkedin, Twitter, Instagram, Facebook, Youtube, Link as LinkIcon, type LucideIcon } from 'lucide-react';
+import { LOCALSTORAGE_MESSAGES_KEY, type AdminMessage, CONTACT_INFO, LOCALSTORAGE_CONTACT_KEY, type ContactDetails, type SocialPlatform, type SocialLink } from '@/data/constants';
 
+const iconMap: Record<SocialPlatform, LucideIcon> = {
+  Github,
+  Linkedin,
+  Twitter,
+  Instagram,
+  Facebook,
+  Youtube,
+  Other: LinkIcon,
+};
 
 export function ContactSection() {
   const { toast } = useToast();
@@ -22,22 +31,16 @@ export function ContactSection() {
   const [currentContactInfo, setCurrentContactInfo] = useState<ContactDetails>(CONTACT_INFO);
 
   useEffect(() => {
-    const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
-    if (storedContactInfo) {
-      try {
+    try {
+      const storedContactInfo = localStorage.getItem(LOCALSTORAGE_CONTACT_KEY);
+      if (storedContactInfo) {
         const parsedInfo: ContactDetails = JSON.parse(storedContactInfo);
-        // Basic validation to ensure it's somewhat like ContactDetails
-        if (parsedInfo && parsedInfo.email && parsedInfo.whatsappNumber && parsedInfo.socials) {
-            setCurrentContactInfo(parsedInfo);
-        } else {
-            setCurrentContactInfo(CONTACT_INFO); // Fallback if structure is off
+        if (parsedInfo && parsedInfo.email && parsedInfo.socials) {
+          setCurrentContactInfo(parsedInfo);
         }
-      } catch (error) {
-        console.error("Error parsing contact info from localStorage for ContactSection", error);
-        setCurrentContactInfo(CONTACT_INFO); // Fallback on error
       }
-    } else {
-        setCurrentContactInfo(CONTACT_INFO); // Fallback if not in localStorage
+    } catch (error) {
+      console.error("Error parsing contact info from localStorage for ContactSection", error);
     }
   }, []);
 
@@ -125,16 +128,6 @@ export function ContactSection() {
     setIsSubmitting(false);
   };
 
-  const contactItems = [
-    { icon: Mail, text: currentContactInfo.email, href: `mailto:${currentContactInfo.email}` },
-    { 
-      icon: MessageSquare, // Changed from Phone
-      text: `WhatsApp: ${currentContactInfo.whatsappNumber}`, // Updated text
-      href: `https://wa.me/${currentContactInfo.whatsappNumber.replace(/[^0-9]/g, '')}` // Ensure only numbers for wa.me link
-    },
-    { icon: MapPin, text: currentContactInfo.location },
-  ];
-
   return (
     <section id="contact" className="py-16 md:py-24 bg-secondary/10">
       <Container>
@@ -151,18 +144,46 @@ export function ContactSection() {
           <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="100ms">
             <div className="bg-card p-8 rounded-lg shadow-xl space-y-6">
               <h3 className="text-2xl font-semibold text-foreground mb-6">Contact Information</h3>
-              {contactItems.map((info, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <info.icon className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                  {info.href ? (
-                    <a href={info.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                      {info.text}
-                    </a>
-                  ) : (
-                    <p className="text-muted-foreground">{info.text}</p>
-                  )}
+              
+              <div className="flex items-start space-x-4">
+                <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                <a href={`mailto:${currentContactInfo.email}`} className="text-muted-foreground hover:text-primary transition-colors">
+                  {currentContactInfo.email}
+                </a>
+              </div>
+              <div className="flex items-start space-x-4">
+                <MessageSquare className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                <a href={`https://wa.me/${currentContactInfo.whatsappNumber.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                  WhatsApp: {currentContactInfo.whatsappNumber}
+                </a>
+              </div>
+              <div className="flex items-start space-x-4">
+                <MapPin className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                <p className="text-muted-foreground">{currentContactInfo.location}</p>
+              </div>
+
+              {currentContactInfo.socials.length > 0 && (
+                <div className="pt-6 border-t border-border">
+                  <h4 className="text-xl font-semibold text-foreground mb-4">Find me on</h4>
+                  <div className="flex flex-wrap gap-4">
+                    {currentContactInfo.socials.map(social => {
+                      const Icon = iconMap[social.platform] || LinkIcon;
+                      return (
+                        <a 
+                          key={social.id} 
+                          href={social.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-muted-foreground hover:text-primary transition-colors"
+                          aria-label={social.platform}
+                        >
+                          <Icon className="h-7 w-7" />
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </ScrollAnimationWrapper>
 
