@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -293,7 +294,7 @@ function ProjectsEditor() {
         if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
             toast({
                 title: "Storage Limit Reached",
-                description: "Could not save project data. An uploaded image is likely too large. Please use smaller images or reduce the number of projects/images.",
+                description: "Could not save project data. An uploaded image is likely too large. Use smaller images or go to Site Settings > Danger Zone to reset all local data.",
                 variant: "destructive",
                 duration: 10000,
             });
@@ -515,7 +516,7 @@ function TestimonialsEditor() {
          if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
             toast({
                 title: "Storage Limit Reached",
-                description: "Could not save testimonials. An uploaded avatar image may be too large.",
+                description: "Could not save testimonials. An uploaded avatar image may be too large. Go to Site Settings > Danger Zone to reset data.",
                 variant: "destructive",
                 duration: 10000,
             });
@@ -1635,6 +1636,33 @@ function SiteSettingsEditor() {
     toast({ title: "Reset Successful", description: "Site settings reset to default." });
   };
 
+  const handleFactoryReset = () => {
+    toast({ title: "Resetting...", description: "Clearing all local data and reloading the page." });
+
+    const keysToRemove = [
+        LOCALSTORAGE_ABOUT_KEY,
+        LOCALSTORAGE_SERVICES_KEY,
+        LOCALSTORAGE_PROJECTS_KEY,
+        LOCALSTORAGE_MESSAGES_KEY,
+        LOCALSTORAGE_TESTIMONIALS_KEY,
+        LOCALSTORAGE_HEADER_NAV_KEY,
+        LOCALSTORAGE_CONTACT_KEY,
+        LOCALSTORAGE_EMAIL_TEMPLATES_KEY,
+        LOCALSTORAGE_SITE_INFO_KEY,
+    ];
+
+    keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+    });
+
+    sessionStorage.removeItem('adminAuthenticated');
+
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+  };
+
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -1705,6 +1733,34 @@ function SiteSettingsEditor() {
                 <p>To update your site's favicon, replace the favicon files in the <code className="text-xs bg-muted px-1 rounded">public/</code> directory and redeploy.</p>
               </AlertDescription>
             </Alert>
+        </div>
+        <div className="pt-6 mt-6 border-t border-destructive/20">
+            <h4 className="text-lg font-semibold text-destructive mb-2">Danger Zone</h4>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Factory Reset Admin Panel
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete all content you have edited in the admin panel (About, Services, Projects, Testimonials, etc.) from your browser's local storage and reset it to the website's original default content.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleFactoryReset}>
+                            Yes, Reset Everything
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <p className="text-xs text-muted-foreground mt-2">
+                If you are experiencing issues like the "storage quota exceeded" error after uploading large images, this will clear all data and allow you to start over.
+            </p>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
