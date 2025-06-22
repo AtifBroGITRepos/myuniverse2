@@ -84,5 +84,3 @@ This guide covers:
 ---
 
 This project was prototyped with Firebase Studio.
-
-    
