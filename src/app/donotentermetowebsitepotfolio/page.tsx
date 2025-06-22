@@ -255,7 +255,7 @@ function ProjectsEditor() {
         initialProjects = storedProjects.map(p => {
           let currentImages: ProjectImage[] = (p.images || []).map((img, index) => ({
             ...img,
-            id: img.id || `img-${Date.now()}-${index}`, // Add id if missing
+            id: img.id || `img-${Date.now()}-${index}`,
           }));
 
           if (p.imageUrl && currentImages.length === 0) {
@@ -287,8 +287,26 @@ function ProjectsEditor() {
       isInitialMount.current = false;
       return;
     }
-    localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
-  }, [projects]);
+    try {
+      localStorage.setItem(LOCALSTORAGE_PROJECTS_KEY, JSON.stringify(projects));
+    } catch (e: any) {
+        if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
+            toast({
+                title: "Storage Limit Reached",
+                description: "Could not save project data. An uploaded image is likely too large. Please use smaller images or reduce the number of projects/images.",
+                variant: "destructive",
+                duration: 10000,
+            });
+        } else {
+          console.error("Failed to save projects to localStorage", e);
+          toast({
+              title: "Save Error",
+              description: "An unexpected error occurred while saving project data.",
+              variant: "destructive",
+          });
+        }
+    }
+  }, [projects, toast]);
 
   const handleProjectChange = (projIndex: number, field: keyof Project, value: any) => {
     const updatedProjects = [...projects];
@@ -491,8 +509,26 @@ function TestimonialsEditor() {
       isInitialMount.current = false;
       return;
     }
-    localStorage.setItem(LOCALSTORAGE_TESTIMONIALS_KEY, JSON.stringify(testimonials));
-  }, [testimonials]);
+    try {
+      localStorage.setItem(LOCALSTORAGE_TESTIMONIALS_KEY, JSON.stringify(testimonials));
+    } catch (e: any) {
+         if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
+            toast({
+                title: "Storage Limit Reached",
+                description: "Could not save testimonials. An uploaded avatar image may be too large.",
+                variant: "destructive",
+                duration: 10000,
+            });
+        } else {
+            console.error("Failed to save testimonials to localStorage", e);
+            toast({
+                title: "Save Error",
+                description: "An unexpected error occurred while saving testimonials.",
+                variant: "destructive",
+            });
+        }
+    }
+  }, [testimonials, toast]);
 
   const handleTestimonialChange = (index: number, field: keyof Testimonial, value: string) => {
     const updatedTestimonials = [...testimonials];
@@ -570,7 +606,7 @@ function TestimonialsEditor() {
               </p>
               {testimonial.avatarUrl && (
                 <div className="mt-2 relative w-24 h-24">
-                  <Image src={testimonial.avatarUrl} alt="Avatar Preview" fill className="rounded-full object-cover"/>
+                  <Image src={testimonial.avatarUrl} alt="Avatar Preview" fill className="rounded-full object-contain"/>
                 </div>
               )}
             </div>
@@ -1834,5 +1870,3 @@ export default function AdminPage() {
   
   return <AdminPanelClient />;
 }
-
-    
