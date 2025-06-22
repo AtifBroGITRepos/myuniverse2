@@ -1,11 +1,16 @@
+
 import { Container } from '@/components/shared/Container';
 import { ScrollAnimationWrapper } from '@/components/shared/ScrollAnimationWrapper';
-import { ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS } from '@/data/constants';
+import { KEY_SKILLS, type AboutContent } from '@/data/constants';
 import Image from 'next/image';
 import { Award, Briefcase, Users, Brain, Code } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export function AboutSection() {
+interface AboutSectionProps {
+  content: AboutContent;
+}
+
+export function AboutSection({ content }: AboutSectionProps) {
   const stats = [
     { value: "5+", label: "Years Experience", icon: Briefcase },
     { value: "50+", label: "Projects Completed", icon: Award },
@@ -25,12 +30,13 @@ export function AboutSection() {
           <ScrollAnimationWrapper animationClassName="animate-fade-in" delay="100ms">
             <div className="relative aspect-square max-w-md mx-auto rounded-lg overflow-hidden shadow-2xl group">
               <Image
-                src="https://placehold.co/600x600.png"
+                src={content.imageUrl}
                 alt="Atif - Portrait"
                 width={600}
                 height={600}
                 className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-500"
-                data-ai-hint="professional portrait"
+                data-ai-hint={content.imageHint || "professional portrait"}
+                priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             </div>
@@ -39,12 +45,7 @@ export function AboutSection() {
           <div className="space-y-6">
             <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="200ms">
               <p className="text-lg text-muted-foreground leading-relaxed">
-                {ATIF_PORTFOLIO_DESCRIPTION.split('. ').slice(0,3).join('. ') + '.'}
-              </p>
-            </ScrollAnimationWrapper>
-            <ScrollAnimationWrapper animationClassName="animate-fade-in-up" delay="300ms">
-               <p className="text-lg text-muted-foreground leading-relaxed">
-                {ATIF_PORTFOLIO_DESCRIPTION.split('. ').slice(3).join('. ')}
+                {content.text}
               </p>
             </ScrollAnimationWrapper>
 
@@ -89,3 +90,5 @@ export function AboutSection() {
     </section>
   );
 }
+
+    

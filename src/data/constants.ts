@@ -3,6 +3,18 @@ import type { LucideIcon } from 'lucide-react';
 
 export const ATIF_PORTFOLIO_DESCRIPTION = `Atif is a versatile Full-Stack Developer, UI/UX enthusiast, and Professional Graphics Designer with a passion for creating elegant and impactful digital experiences. With a strong foundation in modern web technologies including React, Next.js, Node.js, and Python, Atif excels at translating complex business requirements into intuitive and user-friendly applications. His portfolio showcases a diverse range of projects, from dynamic e-commerce platforms to data-driven dashboards and interactive web tools. Atif is a creative problem-solver, adept at both front-end aesthetics and back-end robustness, with growing expertise in Prompt Engineering to enhance AI interactions. He always strives for pixel-perfect execution and scalable solutions, and is also available for Freelance projects.`;
 
+export interface AboutContent {
+  text: string;
+  imageUrl: string;
+  imageHint: string;
+}
+
+export const DEFAULT_ABOUT_CONTENT: AboutContent = {
+  text: ATIF_PORTFOLIO_DESCRIPTION,
+  imageUrl: 'https://placehold.co/600x600.png',
+  imageHint: 'professional portrait',
+};
+
 export interface ProjectImage {
   id: string;
   url: string; // Can be a URL or a Data URI
@@ -215,7 +227,7 @@ export const HEADER_NAV_ITEMS_DATA: NavItem[] = [
   { name: 'Contact', href: '/#contact' },
 ];
 
-export const LOCALSTORAGE_ABOUT_KEY = "admin_about_text";
+export const LOCALSTORAGE_ABOUT_KEY = "admin_about_content";
 export const LOCALSTORAGE_SERVICES_KEY = "admin_services_data";
 export const LOCALSTORAGE_PROJECTS_KEY = "admin_projects_data"; 
 export const LOCALSTORAGE_MESSAGES_KEY = "admin_messages_data";
@@ -372,7 +384,5 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplates = {
 </body>
 </html>`
 };
-
-
 
     

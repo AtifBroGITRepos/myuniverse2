@@ -1,12 +1,12 @@
 
-"use client"; // Required because we'll use ClientProjectsLoader
+"use client";
 
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import { HeroSection } from '@/components/sections/HeroSection';
-import { AboutSection } from '@/components/sections/AboutSection';
+import { ClientAboutSectionLoader } from '@/components/sections/ClientAboutSectionLoader';
 import { ClientServicesLoader } from '@/components/sections/ClientServicesLoader'; 
-import { ClientProjectsLoader } from '@/components/sections/ClientProjectsLoader'; // Import new loader
+import { ClientProjectsLoader } from '@/components/sections/ClientProjectsLoader';
 import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
 import { AIProjectIdeaGeneratorSection } from '@/components/sections/AIProjectIdeaGeneratorSection';
 import { AISkillExplainerSection } from '@/components/sections/AISkillExplainerSection';
@@ -20,9 +20,9 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
-        <AboutSection />
+        <ClientAboutSectionLoader />
         <ClientServicesLoader /> 
-        <ClientProjectsLoader sectionId="projects" title="My Creations" description="Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design." /> {/* Use new loader */}
+        <ClientProjectsLoader sectionId="projects" title="My Creations" description="Here's a selection of projects that showcase my skills and passion for building innovative solutions. Each project reflects my commitment to quality and user-centric design." />
         <TestimonialsSection testimonials={TESTIMONIALS_DATA} />
         <AIProjectIdeaGeneratorSection atifPortfolioDescription={ATIF_PORTFOLIO_DESCRIPTION} />
         <AISkillExplainerSection atifPortfolioDescription={ATIF_PORTFOLIO_DESCRIPTION} />
@@ -33,3 +33,5 @@ export default function Home() {
     </>
   );
 }
+
+    

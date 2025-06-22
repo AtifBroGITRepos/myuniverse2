@@ -16,12 +16,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ATIF_PORTFOLIO_DESCRIPTION, KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
+  KEY_SKILLS, SERVICES_DATA, PROJECTS_DATA, CONTACT_INFO, TESTIMONIALS_DATA, HEADER_NAV_ITEMS_DATA,
   LOCALSTORAGE_MESSAGES_KEY, LOCALSTORAGE_TESTIMONIALS_KEY, LOCALSTORAGE_HEADER_NAV_KEY, LOCALSTORAGE_PROJECTS_KEY,
   DEFAULT_EMAIL_TEMPLATES, LOCALSTORAGE_EMAIL_TEMPLATES_KEY, type EmailTemplates,
   DEFAULT_SITE_INFO, LOCALSTORAGE_SITE_INFO_KEY, type SiteInfo,
   type Service, type Project, type ProjectImage, type ContactDetails, type ServiceIconName, type AdminMessage, type Testimonial, type NavItem,
-  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, 
+  LOCALSTORAGE_ABOUT_KEY, LOCALSTORAGE_SERVICES_KEY, LOCALSTORAGE_CONTACT_KEY, DEFAULT_ABOUT_CONTENT, type AboutContent
 } from '@/data/constants';
 import { generateAboutText, type GenerateAboutTextInput } from '@/ai/flows/generate-about-text-flow';
 import { summarizeMessages, type SummarizeMessagesInput } from '@/ai/flows/summarize-messages-flow';
@@ -41,15 +41,20 @@ const ADMIN_SECRET_KEY = "ilovegfxm";
 
 
 function AboutEditor() {
-  const [aboutText, setAboutText] = useState(ATIF_PORTFOLIO_DESCRIPTION);
+  const [aboutContent, setAboutContent] = useState<AboutContent>(DEFAULT_ABOUT_CONTENT);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const { toast } = useToast();
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const storedAboutText = localStorage.getItem(LOCALSTORAGE_ABOUT_KEY);
-    if (storedAboutText) {
-      setAboutText(storedAboutText);
+    try {
+      const storedContent = localStorage.getItem(LOCALSTORAGE_ABOUT_KEY);
+      if (storedContent) {
+        setAboutContent(JSON.parse(storedContent));
+      }
+    } catch (e) {
+      console.error("Error parsing about content from localStorage", e);
+      setAboutContent(DEFAULT_ABOUT_CONTENT);
     }
   }, []);
 
@@ -58,26 +63,57 @@ function AboutEditor() {
       isInitialMount.current = false;
       return;
     }
-    localStorage.setItem(LOCALSTORAGE_ABOUT_KEY, aboutText);
-  }, [aboutText]);
+    try {
+      localStorage.setItem(LOCALSTORAGE_ABOUT_KEY, JSON.stringify(aboutContent));
+    } catch (e: any) {
+      if (e.name === 'QuotaExceededError' || (e.inner && e.inner.name === 'QuotaExceededError')) {
+        toast({
+            title: "Storage Limit Reached",
+            description: "Could not save about data. An uploaded image is likely too large. Go to Site Settings > Danger Zone to reset all local data.",
+            variant: "destructive",
+            duration: 10000,
+        });
+      }
+    }
+  }, [aboutContent, toast]);
+
+  const handleTextChange = (value: string) => {
+    setAboutContent(prev => ({ ...prev, text: value }));
+  };
+
+  const handleImageHintChange = (value: string) => {
+    setAboutContent(prev => ({ ...prev, imageHint: value }));
+  };
+
+  const handleImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAboutContent(prev => ({...prev, imageUrl: reader.result as string }));
+        toast({ title: "Image Preview Ready", description: "About me image updated." });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleReset = () => {
-    setAboutText(ATIF_PORTFOLIO_DESCRIPTION);
+    setAboutContent(DEFAULT_ABOUT_CONTENT);
     localStorage.removeItem(LOCALSTORAGE_ABOUT_KEY);
-    toast({ title: "Reset Successful", description: "About Me text reset to default." });
+    toast({ title: "Reset Successful", description: "About Me content reset to default." });
   };
 
   const handleGenerateWithAI = async () => {
     setIsAiLoading(true);
     try {
       const input: GenerateAboutTextInput = {
-        currentText: aboutText,
+        currentText: aboutContent.text,
         keywords: KEY_SKILLS.slice(0, 5),
         tone: 'professional',
       };
       const result = await generateAboutText(input);
       if (result.suggestedText) {
-        setAboutText(result.suggestedText);
+        setAboutContent(prev => ({ ...prev, text: result.suggestedText }));
         toast({ title: "AI Suggestion Applied!", description: "New About Me text generated and autosaved." });
       } else {
         toast({ title: "AI Suggestion", description: "AI did not provide a new suggestion.", variant: "default" });
@@ -94,20 +130,40 @@ function AboutEditor() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle>About Me Editor</CardTitle>
-        <CardDescription>Edit the "About Me" section text. Changes are saved automatically.</CardDescription>
+        <CardDescription>Edit the text and image for the "About Me" section. Changes are saved automatically.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
-          value={aboutText}
-          onChange={(e) => setAboutText(e.target.value)}
-          rows={10}
-          className="bg-input text-foreground border-border focus:ring-primary"
-          placeholder="Enter your About Me description..."
-        />
-         <div className="flex flex-col sm:flex-row gap-2">
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="about-text">About Me Text</Label>
+          <Textarea
+            id="about-text"
+            value={aboutContent.text}
+            onChange={(e) => handleTextChange(e.target.value)}
+            rows={10}
+            className="bg-input text-foreground border-border focus:ring-primary"
+            placeholder="Enter your About Me description..."
+          />
+        </div>
+        
+        <div className="space-y-2">
+            <Label htmlFor="about-image-upload">About Me Image</Label>
+            <Input id="about-image-upload" type="file" accept="image/*" onChange={handleImageFileChange} className="bg-input"/>
+            {aboutContent.imageUrl && (
+              <div className="mt-2 relative w-48 h-48">
+                <Image src={aboutContent.imageUrl} alt="About me preview" fill className="object-cover rounded-md border"/>
+              </div>
+            )}
+        </div>
+
+        <div>
+            <Label htmlFor="about-image-hint">Image AI Hint (1-2 words)</Label>
+            <Input id="about-image-hint" value={aboutContent.imageHint} onChange={e => handleImageHintChange(e.target.value)} className="bg-input"/>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button onClick={handleGenerateWithAI} disabled={isAiLoading} className="flex-1">
             <Sparkles className="mr-2 h-4 w-4" />
-            {isAiLoading ? "Generating with AI..." : "Suggest with AI"}
+            {isAiLoading ? "Generating Text..." : "Suggest Text with AI"}
           </Button>
         </div>
       </CardContent>
@@ -1926,3 +1982,5 @@ export default function AdminPage() {
   
   return <AdminPanelClient />;
 }
+
+    
